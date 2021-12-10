@@ -1,6 +1,8 @@
 import { PORT } from "./consts/port";
 import { Methods as Funcs } from "./classes/Methods";
 import { connect } from "./db";
+import { UsersRoles } from "./types/user";
+import { Helpers as Help } from "./classes/Helpers";
 
 const express = require("express");
 const cors = require("cors");
@@ -9,6 +11,8 @@ const app = express();
 const toobusy = require("toobusy-js");
 
 const parser = bodyParser.urlencoded({ extended: true, limit: "1kb"  });
+
+const Helpers = new Help();
 
 app.use(cors());
 app.use(parser);
@@ -66,11 +70,29 @@ app.post("/CreateUser", (req, res) => {
 app.post("/AuthUser", (req, res) => {
     Methods.AuthUser(req.body)
         .then((token) => {
+            console.log(token);
             res.json({ token });
         })
         .catch((e) => {
             res.json(e);
         });
+});
+
+
+app.post("/InsertPost", (req, res) => {
+    const { token, post } = req.body;
+    Methods.GetUserSuccessLevel(token)
+        .then((rs) => {
+            if (rs >= UsersRoles.Editor) {
+                Methods.Insert("posts", post);
+                res.json({
+                  post: "Post added"  
+                });
+            } else {
+                res.json(Helpers.CreateError("User have'nt access", 400));
+            };
+        })
+        .catch((e) => res.json(e));
 });
 
 app.listen(PORT, () => console.log(`Server started http://localhost:${PORT}`));

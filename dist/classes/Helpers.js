@@ -7,7 +7,7 @@ exports.Helpers = void 0;
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 class Helpers {
-    constructor(connect) {
+    constructor() {
         this.CreateToken = (email) => {
             return jsonwebtoken_1.default.sign({ email }, "MySuP3R_z3kr3t", { expiresIn: "6h" });
             ;
@@ -21,9 +21,7 @@ class Helpers {
         this.CreateError = (error, status) => {
             return { error, status };
         };
-        this.connect = connect();
     }
-    ;
 }
 exports.Helpers = Helpers;
 ;

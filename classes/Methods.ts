@@ -1,8 +1,7 @@
 import { Helpers as Help } from "./Helpers";
 import { UsersRoles, ViewUsersModel } from "../types/user";
-import { connect } from "../db";
 
-const Helpers = new Help(connect);
+const Helpers = new Help();
 
 export class Methods {
     connect: any;
@@ -10,20 +9,21 @@ export class Methods {
         this.connect = connect();
     }
 
-    public GetUser = (token: string) => {
+    public GetUserSuccessLevel = (token: string) => {
         return new Promise(async (res, rej) => {
             try {
-                (await this.connect)
-                    .collection("users")
-                    .find({ token })
-                    .toArray((err, result) => {
-                        if (err) {
-                            rej(Helpers.CreateError(err, 500));
-                        };
-                        if (result.length == 0) {
-                            rej(Helpers.CreateError("User is not defined", 404));
-                        };
-                        res(result[0]);
+                this.GetAuth(token)
+                    .then(async (rs) => {
+                        this.Find("users", { token })
+                            .then((rs) => {
+                                res(rs[0].role);
+                            })
+                            .catch((e) => {
+                                rej(e);
+                            });
+                    })
+                    .catch(e => {
+                        rej(e);
                     });
             } catch (e) {
                 rej(Helpers.CreateError(e, 500));
@@ -72,9 +72,15 @@ export class Methods {
                 (await this.connect)
                     .collection("auth")
                     .find({ token })
-                    .toArray((err, result) => {
+                    .toArray(async (err, result) => {
                         if (err) {
                             rej(Helpers.CreateError(err, 500));
+                        };
+                        // console.log(result);
+                        if (result[0].blocked) {
+                            rej(Helpers.CreateError("User is blocked", 400));
+                            (await this.connect).collection("auth")
+                                .deleteOne({ nickname: result[0].nickname });
                         };
                         if (result.length > 0) {
                             res([]);
@@ -90,27 +96,41 @@ export class Methods {
     public AuthUser = ({ password, nickname }) => {
         return new Promise(async (res, rej) => {
             try {
-                this.GetAuth(nickname)
-                    .then((r) => {
-                        rej(Helpers.CreateError("User is auth", 400));
-                    })
-                    .catch(async (e) => {
-                        (await this.connect).collection("users").find({ nickname }).toArray(async (er, rl) => {
-                            console.log(rl, nickname)
-                            if (er) {
-                                rej(er);
-                            };
-                            if (rl.length === 0) {
-                                rej(er);
-                            };
-                            if (Helpers.IsValidPassword(password, rl[0].password)) {
-                                const token = Helpers.CreateToken(rl[0].nickname);
-                                (await this.connect).collection("users").replaceOne({ nickname: rl[0].nickname }, { ...rl[0], token });
-                                (await this.connect).collection("auth").insertOne({ nickname, token });
+                    (await this.connect).collection("users").find({ nickname }).toArray(async (er, rl) => {
+                        if (er) {
+                            rej(er);
+                        };
+                        if (rl.length === 0) {
+                            rej(er);
+                        };
+                        if (rl[0].blocked) {
+                            rej(Helpers.CreateError("User is blocked", 400));
+                            (await this.connect).collection("auth")
+                                .deleteOne({ nickname });
+                        };
+                        if (Helpers.IsValidPassword(password, rl[0].password)) {
+                            const token = Helpers.CreateToken(rl[0].nickname);
+                            (await this.connect).collection("auth")
+                                .find({ nickname })
+                                .toArray(async (err, result) => {
+                                    if (err) {
+                                        rej(Helpers.CreateError(err, 500));
+                                    };
+                                    // console.log("FindAuths", result);
+                                    if (result.length === 0) {
+                                        (await this.connect)
+                                            .collection("auth").insertOne({ nickname, token });
+                                    } else {
+                                        (await this.connect)
+                                            .collection("auth")
+                                                .replaceOne({ nickname: rl[0].nickname }, { nickname: rl[0].nickname, token });
+                                    };
+                                    (await this.connect).collection("users")
+                                        .replaceOne({ nickname: rl[0].nickname }, { ...rl[0], token });
+                                });
                                 res(token);
-                            };
-                            rej(Helpers.CreateError("Password is not valid", 400));
-                        });
+                        };
+                        rej(Helpers.CreateError("Password is not valid", 400));
                     });
             } catch(e) {
                 rej(Helpers.CreateError(e, 500));
@@ -129,10 +149,33 @@ export class Methods {
                     };
                     if (result.length > 0) {
                         // console.log("GetUserByToken", result);
-                        const { nickname, blocked, confirmed, creationDate, role } = result[0];
-                        res({ nickname, blocked, confirmed, creationDate, role });
+                        const { nickname, blocked, confirmed, creationDate, role, _id } = result[0];
+                        res({ nickname, blocked, confirmed, creationDate, role, id: _id });
                     };
                     rej(Helpers.CreateError("User is not defined", 400));
+                });
+        });
+    };
+
+    public Insert = async (collection: string, data) => {
+        (await this.connect)
+            .collection(collection)
+            .insertOne(data);
+    };
+
+    public Find = (collection: string, find) => {
+        return new Promise(async (res, rej) => {
+            (await this.connect)
+                .collection(collection)
+                .findOne(find)
+                .toArray((err, result) => {
+                    if (err) {
+                        rej(err);
+                    };
+                    if (result.length > 0) {
+                        res(result);
+                    };
+                    rej(undefined);
                 });
         });
     };

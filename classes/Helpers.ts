@@ -2,11 +2,6 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
 export class Helpers {
-    connect: any;
-    constructor(connect) {
-        this.connect = connect();
-    }; 
-
     public CreateToken = (email: string) => {
         return jwt.sign({ email }, "MySuP3R_z3kr3t", { expiresIn: "6h" });;
     };

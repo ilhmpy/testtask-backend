@@ -3,12 +3,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const port_1 = require("./consts/port");
 const Methods_1 = require("./classes/Methods");
 const db_1 = require("./db");
+const user_1 = require("./types/user");
+const Helpers_1 = require("./classes/Helpers");
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
 const app = express();
 const toobusy = require("toobusy-js");
 const parser = bodyParser.urlencoded({ extended: true, limit: "1kb" });
+const Helpers = new Helpers_1.Helpers();
 app.use(cors());
 app.use(parser);
 app.use(bodyParser.json());
@@ -61,11 +64,29 @@ app.post("/CreateUser", (req, res) => {
 app.post("/AuthUser", (req, res) => {
     Methods.AuthUser(req.body)
         .then((token) => {
+        console.log(token);
         res.json({ token });
     })
         .catch((e) => {
         res.json(e);
     });
+});
+app.post("/InsertPost", (req, res) => {
+    const { token, post } = req.body;
+    Methods.GetUserSuccessLevel(token)
+        .then((rs) => {
+        if (rs >= user_1.UsersRoles.Editor) {
+            Methods.Insert("posts", post);
+            res.json({
+                post: "Post added"
+            });
+        }
+        else {
+            res.json(Helpers.CreateError("User have'nt access", 400));
+        }
+        ;
+    })
+        .catch((e) => res.json(e));
 });
 app.listen(port_1.PORT, () => console.log(`Server started http://localhost:${port_1.PORT}`));
 //# sourceMappingURL=index.js.map

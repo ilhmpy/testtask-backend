@@ -1,8 +1,6 @@
 import { Helpers as Help } from "./Helpers";
 import { UsersRoles, ViewUsersModel } from "../types/user";
 import { connect } from "../db";
-import { rejects } from "assert";
-import { Db } from "mongodb";
 
 const Helpers = new Help(connect);
 
@@ -22,7 +20,7 @@ export class Methods {
                         if (err) {
                             rej(Helpers.CreateError(err, 500));
                         };
-                        if (result.length === 0) {
+                        if (result.length == 0) {
                             rej(Helpers.CreateError("User is not defined", 404));
                         };
                         res(result[0]);
@@ -68,18 +66,18 @@ export class Methods {
         });
     };
 
-    public GetAuth = (nickname: string) => {
+    public GetAuth = (token: string) => {
         return new Promise(async (res, rej) => {
             try {
                 (await this.connect)
                     .collection("auth")
-                    .find({ nickname })
+                    .find({ token })
                     .toArray((err, result) => {
                         if (err) {
                             rej(Helpers.CreateError(err, 500));
                         };
                         if (result.length > 0) {
-                            res(result[0]);
+                            res([]);
                         };
                         rej(Helpers.CreateError("User is not auth", 401));
                     });
@@ -117,6 +115,25 @@ export class Methods {
             } catch(e) {
                 rej(Helpers.CreateError(e, 500));
             };
+        });
+    };
+
+    public GetUserByToken = (token: string) => {
+        return new Promise(async (res, rej) => {
+            (await this.connect)
+                .collection("users")
+                .find({ token })
+                .toArray((err, result) => { 
+                    if (err) {
+                        rej(Helpers.CreateError(err, 500));
+                    };
+                    if (result.length > 0) {
+                        // console.log("GetUserByToken", result);
+                        const { nickname, blocked, confirmed, creationDate, role } = result[0];
+                        res({ nickname, blocked, confirmed, creationDate, role });
+                    };
+                    rej(Helpers.CreateError("User is not defined", 400));
+                });
         });
     };
 };

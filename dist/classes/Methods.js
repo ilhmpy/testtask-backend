@@ -27,7 +27,7 @@ class Methods {
                             rej(Helpers.CreateError(err, 500));
                         }
                         ;
-                        if (result.length === 0) {
+                        if (result.length == 0) {
                             rej(Helpers.CreateError("User is not defined", 404));
                         }
                         ;
@@ -77,19 +77,19 @@ class Methods {
                 }
             }));
         };
-        this.GetAuth = (nickname) => {
+        this.GetAuth = (token) => {
             return new Promise((res, rej) => __awaiter(this, void 0, void 0, function* () {
                 try {
                     (yield this.connect)
                         .collection("auth")
-                        .find({ nickname })
+                        .find({ token })
                         .toArray((err, result) => {
                         if (err) {
                             rej(Helpers.CreateError(err, 500));
                         }
                         ;
                         if (result.length > 0) {
-                            res(result[0]);
+                            res([]);
                         }
                         ;
                         rej(Helpers.CreateError("User is not auth", 401));
@@ -110,7 +110,6 @@ class Methods {
                     })
                         .catch((e) => __awaiter(this, void 0, void 0, function* () {
                         (yield this.connect).collection("users").find({ nickname }).toArray((er, rl) => __awaiter(this, void 0, void 0, function* () {
-                            const { nickname, creationDate, confirmed, blocked } = rl[0];
                             console.log(rl, nickname);
                             if (er) {
                                 rej(er);
@@ -135,6 +134,26 @@ class Methods {
                     rej(Helpers.CreateError(e, 500));
                 }
                 ;
+            }));
+        };
+        this.GetUserByToken = (token) => {
+            return new Promise((res, rej) => __awaiter(this, void 0, void 0, function* () {
+                (yield this.connect)
+                    .collection("users")
+                    .find({ token })
+                    .toArray((err, result) => {
+                    if (err) {
+                        rej(Helpers.CreateError(err, 500));
+                    }
+                    ;
+                    if (result.length > 0) {
+                        // console.log("GetUserByToken", result);
+                        const { nickname, blocked, confirmed, creationDate, role } = result[0];
+                        res({ nickname, blocked, confirmed, creationDate, role });
+                    }
+                    ;
+                    rej(Helpers.CreateError("User is not defined", 400));
+                });
             }));
         };
         this.connect = connect();

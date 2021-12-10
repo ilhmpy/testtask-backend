@@ -1,7 +1,6 @@
 import { PORT } from "./consts/port";
-import { connect } from "./db";
 import { Methods as Funcs } from "./classes/Methods";
-import { User } from "./types/user"; 
+import { connect } from "./db";
 
 const express = require("express");
 const cors = require("cors");
@@ -24,28 +23,40 @@ app.get('/', (req, res) => {
 
 app.get("/GetUser", (req, res) => {
     const { Token } = req.query;
-    res.json({ err: "rrr" })
     Methods.GetUser(Token)
-        .then((rs) => {
-            console.log(rs);
-            res.json({ rs });
-        })
+        .then((rs: string) => {
+            Methods.GetAuth(rs)
+                .then((rsr) => {
+                    res.json(rsr);
+                })
+                .catch((e) => {
+                    res.json(e);
+                });
+        }) 
         .catch((err) => {
             console.log(err);
-            res.status.ok = false;
             res.json(err);
         });
-});
+}); 
 
 app.post("/CreateUser", (req, res) => {
-    const { email, password } = req.body;
-    Methods.CreateUser(email, password)
+    Methods.CreateUser(req.body)
          .then((user) => {
             res.json(user);
         })
         .catch((error) => {
             console.log(error);
             res.json(error);
+        });
+});
+
+app.post("/AuthUser", (req, res) => {
+    Methods.AuthUser(req.body)
+        .then((token) => {
+            res.json({ token });
+        })
+        .catch((e) => {
+            res.json(e);
         });
 });
 

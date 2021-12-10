@@ -77,11 +77,11 @@ export class Methods {
                             rej(Helpers.CreateError(err, 500));
                         };
                         // console.log(result);
-                        if (result[0].blocked) {
+                        /* if (result[0].blocked) {
                             rej(Helpers.CreateError("User is blocked", 400));
                             (await this.connect).collection("auth")
                                 .deleteOne({ nickname: result[0].nickname });
-                        };
+                        }; */
                         if (result.length > 0) {
                             res([]);
                         };
@@ -103,11 +103,12 @@ export class Methods {
                         if (rl.length === 0) {
                             rej(er);
                         };
+                        /*
                         if (rl[0].blocked) {
                             rej(Helpers.CreateError("User is blocked", 400));
                             (await this.connect).collection("auth")
                                 .deleteOne({ nickname });
-                        };
+                        }; */
                         if (Helpers.IsValidPassword(password, rl[0].password)) {
                             const token = Helpers.CreateToken(rl[0].nickname);
                             (await this.connect).collection("auth")
@@ -116,7 +117,7 @@ export class Methods {
                                     if (err) {
                                         rej(Helpers.CreateError(err, 500));
                                     };
-                                    // console.log("FindAuths", result);
+                                    console.log("FindAuths", result);
                                     if (result.length === 0) {
                                         (await this.connect)
                                             .collection("auth").insertOne({ nickname, token });
@@ -140,7 +141,8 @@ export class Methods {
 
     public GetUserByToken = (token: string) => {
         return new Promise(async (res, rej) => {
-            (await this.connect)
+            try {
+                (await this.connect)
                 .collection("users")
                 .find({ token })
                 .toArray((err, result) => { 
@@ -148,35 +150,43 @@ export class Methods {
                         rej(Helpers.CreateError(err, 500));
                     };
                     if (result.length > 0) {
-                        // console.log("GetUserByToken", result);
+                        console.log("GetUserByToken", result);
                         const { nickname, blocked, confirmed, creationDate, role, _id } = result[0];
                         res({ nickname, blocked, confirmed, creationDate, role, id: _id });
                     };
                     rej(Helpers.CreateError("User is not defined", 400));
                 });
+            } catch(e) {
+                rej(Helpers.CreateError(e, 500));
+            };
         });
     };
 
     public Insert = async (collection: string, data) => {
-        (await this.connect)
+        try {
+            (await this.connect)
             .collection(collection)
             .insertOne(data);
+        } catch(e) {
+            console.log(e);
+        };
     };
 
     public Find = (collection: string, find) => {
         return new Promise(async (res, rej) => {
-            (await this.connect)
-                .collection(collection)
-                .findOne(find)
-                .toArray((err, result) => {
-                    if (err) {
-                        rej(err);
-                    };
-                    if (result.length > 0) {
+            try {
+                (await this.connect)
+                    .collection(collection)
+                    .find(find)
+                    .toArray((err, result) => {
+                        if (err) {
+                            rej(err);
+                        };
                         res(result);
-                    };
-                    rej(undefined);
-                });
+                    });
+            } catch(e) {
+                console.log(e);
+            };
         });
     };
 };

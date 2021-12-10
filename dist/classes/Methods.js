@@ -87,12 +87,11 @@ class Methods {
                         }
                         ;
                         // console.log(result);
-                        if (result[0].blocked) {
+                        /* if (result[0].blocked) {
                             rej(Helpers.CreateError("User is blocked", 400));
-                            (yield this.connect).collection("auth")
+                            (await this.connect).collection("auth")
                                 .deleteOne({ nickname: result[0].nickname });
-                        }
-                        ;
+                        }; */
                         if (result.length > 0) {
                             res([]);
                         }
@@ -118,12 +117,12 @@ class Methods {
                             rej(er);
                         }
                         ;
+                        /*
                         if (rl[0].blocked) {
                             rej(Helpers.CreateError("User is blocked", 400));
-                            (yield this.connect).collection("auth")
+                            (await this.connect).collection("auth")
                                 .deleteOne({ nickname });
-                        }
-                        ;
+                        }; */
                         if (Helpers.IsValidPassword(password, rl[0].password)) {
                             const token = Helpers.CreateToken(rl[0].nickname);
                             (yield this.connect).collection("auth")
@@ -133,7 +132,7 @@ class Methods {
                                     rej(Helpers.CreateError(err, 500));
                                 }
                                 ;
-                                // console.log("FindAuths", result);
+                                console.log("FindAuths", result);
                                 if (result.length === 0) {
                                     (yield this.connect)
                                         .collection("auth").insertOne({ nickname, token });
@@ -161,45 +160,59 @@ class Methods {
         };
         this.GetUserByToken = (token) => {
             return new Promise((res, rej) => __awaiter(this, void 0, void 0, function* () {
-                (yield this.connect)
-                    .collection("users")
-                    .find({ token })
-                    .toArray((err, result) => {
-                    if (err) {
-                        rej(Helpers.CreateError(err, 500));
-                    }
-                    ;
-                    if (result.length > 0) {
-                        // console.log("GetUserByToken", result);
-                        const { nickname, blocked, confirmed, creationDate, role, _id } = result[0];
-                        res({ nickname, blocked, confirmed, creationDate, role, id: _id });
-                    }
-                    ;
-                    rej(Helpers.CreateError("User is not defined", 400));
-                });
+                try {
+                    (yield this.connect)
+                        .collection("users")
+                        .find({ token })
+                        .toArray((err, result) => {
+                        if (err) {
+                            rej(Helpers.CreateError(err, 500));
+                        }
+                        ;
+                        if (result.length > 0) {
+                            console.log("GetUserByToken", result);
+                            const { nickname, blocked, confirmed, creationDate, role, _id } = result[0];
+                            res({ nickname, blocked, confirmed, creationDate, role, id: _id });
+                        }
+                        ;
+                        rej(Helpers.CreateError("User is not defined", 400));
+                    });
+                }
+                catch (e) {
+                    rej(Helpers.CreateError(e, 500));
+                }
+                ;
             }));
         };
         this.Insert = (collection, data) => __awaiter(this, void 0, void 0, function* () {
-            (yield this.connect)
-                .collection(collection)
-                .insertOne(data);
+            try {
+                (yield this.connect)
+                    .collection(collection)
+                    .insertOne(data);
+            }
+            catch (e) {
+                console.log(e);
+            }
+            ;
         });
         this.Find = (collection, find) => {
             return new Promise((res, rej) => __awaiter(this, void 0, void 0, function* () {
-                (yield this.connect)
-                    .collection(collection)
-                    .findOne(find)
-                    .toArray((err, result) => {
-                    if (err) {
-                        rej(err);
-                    }
-                    ;
-                    if (result.length > 0) {
+                try {
+                    (yield this.connect)
+                        .collection(collection)
+                        .find(find)
+                        .toArray((err, result) => {
+                        if (err) {
+                            rej(err);
+                        }
+                        ;
                         res(result);
-                    }
-                    ;
-                    rej(undefined);
-                });
+                    });
+                }
+                catch (e) {
+                    console.log(e);
+                }
+                ;
             }));
         };
         this.connect = connect();

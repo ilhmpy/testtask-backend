@@ -3,6 +3,7 @@ import { Methods as Funcs } from "./classes/Methods";
 import { connect } from "./db";
 import { UsersRoles } from "./types/user";
 import { Helpers as Help } from "./classes/Helpers";
+import { ObjectId } from "mongodb";
 
 const express = require("express");
 const cors = require("cors");
@@ -26,6 +27,7 @@ app.use((req, res, next) => {
     };
 });
 
+
 process.on("uncaughtException", () => {
     process.exit();
 });
@@ -40,13 +42,14 @@ app.get('/', (req, res) => {
 
 app.get("/GetAuth", (req, res) => {
     const { Token } = req.query;
-    Methods.GetAuth(Token)
+        Methods.GetAuth(Token)
         .then((rs: string) => {
             Methods.GetUserByToken(Token)
                 .then((rsr) => {
                     res.json(rsr);
                 })
                 .catch((e) => {
+                    console.log(e);
                     res.json(e);
                 });
         }) 
@@ -57,7 +60,7 @@ app.get("/GetAuth", (req, res) => {
 }); 
 
 app.post("/CreateUser", (req, res) => {
-    Methods.CreateUser(req.body)
+        Methods.CreateUser(req.body)
          .then((user) => {
             res.json(user);
         })
@@ -68,7 +71,7 @@ app.post("/CreateUser", (req, res) => {
 });
 
 app.post("/AuthUser", (req, res) => {
-    Methods.AuthUser(req.body)
+        Methods.AuthUser(req.body)
         .then((token) => {
             console.log(token);
             res.json({ token });
@@ -78,13 +81,13 @@ app.post("/AuthUser", (req, res) => {
         });
 });
 
-
 app.post("/InsertPost", (req, res) => {
     const { token, post } = req.body;
+    console.log(token, post);
     Methods.GetUserSuccessLevel(token)
         .then((rs) => {
             if (rs >= UsersRoles.Editor) {
-                Methods.Insert("posts", post);
+                Methods.Insert("posts", { ...post, comments: [], confirmed: true });
                 res.json({
                   post: "Post added"  
                 });
@@ -92,7 +95,21 @@ app.post("/InsertPost", (req, res) => {
                 res.json(Helpers.CreateError("User have'nt access", 400));
             };
         })
-        .catch((e) => res.json(e));
+        .catch((e) => res.json(e)); 
+});
+
+app.get("/GetPosts", (req, res) => {
+    try {
+        const { id } = req.query;
+        console.log(id);
+        Methods.Find("posts", id ? { _id: new ObjectId(id) } : {})
+            .then((rs) => {
+                console.log("GetPosts", rs);
+                res.json(rs);
+            }).catch((err) => console.log(err));
+    } catch(e) {
+        console.log(e); 
+    };
 });
 
 app.listen(PORT, () => console.log(`Server started http://localhost:${PORT}`));

@@ -5,6 +5,7 @@ const Methods_1 = require("./classes/Methods");
 const db_1 = require("./db");
 const user_1 = require("./types/user");
 const Helpers_1 = require("./classes/Helpers");
+const mongodb_1 = require("mongodb");
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
@@ -43,6 +44,7 @@ app.get("/GetAuth", (req, res) => {
             res.json(rsr);
         })
             .catch((e) => {
+            console.log(e);
             res.json(e);
         });
     })
@@ -73,10 +75,11 @@ app.post("/AuthUser", (req, res) => {
 });
 app.post("/InsertPost", (req, res) => {
     const { token, post } = req.body;
+    console.log(token, post);
     Methods.GetUserSuccessLevel(token)
         .then((rs) => {
         if (rs >= user_1.UsersRoles.Editor) {
-            Methods.Insert("posts", post);
+            Methods.Insert("posts", Object.assign(Object.assign({}, post), { comments: [] }));
             res.json({
                 post: "Post added"
             });
@@ -87,6 +90,21 @@ app.post("/InsertPost", (req, res) => {
         ;
     })
         .catch((e) => res.json(e));
+});
+app.get("/GetPosts", (req, res) => {
+    try {
+        const { id } = req.query;
+        console.log(id);
+        Methods.Find("posts", id ? { _id: new mongodb_1.ObjectId(id) } : {})
+            .then((rs) => {
+            console.log("GetPosts", rs);
+            res.json(rs);
+        }).catch((err) => console.log(err));
+    }
+    catch (e) {
+        console.log(e);
+    }
+    ;
 });
 app.listen(port_1.PORT, () => console.log(`Server started http://localhost:${port_1.PORT}`));
 //# sourceMappingURL=index.js.map

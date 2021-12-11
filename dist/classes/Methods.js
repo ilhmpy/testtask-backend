@@ -83,21 +83,14 @@ class Methods {
         this.GetAuth = (token) => {
             return new Promise((res, rej) => __awaiter(this, void 0, void 0, function* () {
                 try {
-                    (yield this.connect)
-                        .collection(collections_1.collections.auth)
-                        .find({ token })
-                        .toArray((err, result) => __awaiter(this, void 0, void 0, function* () {
-                        if (err) {
-                            rej(Helpers.CreateError(err, 500));
-                        }
-                        ;
+                    this.Find(collections_1.collections.auth, { token })
+                        .then((result) => __awaiter(this, void 0, void 0, function* () {
                         if (result && result.length > 0) {
                             this.Find(collections_1.collections.users, { nickname: result[0].nickname })
                                 .then((result) => __awaiter(this, void 0, void 0, function* () {
                                 if (result[0].blocked) {
+                                    this.Delete(collections_1.collections.auth, { nickname: result[0].nickname });
                                     rej(Helpers.CreateError("User is blocked", 400));
-                                    (yield this.connect).collection(collections_1.collections.auth)
-                                        .deleteOne({ nickname: result[0].nickname });
                                 }
                                 ;
                             })).catch((err) => {
@@ -109,7 +102,9 @@ class Methods {
                         }
                         ;
                         rej(Helpers.CreateError("User is not auth", 401));
-                    }));
+                    })).catch((err) => {
+                        rej(err);
+                    });
                 }
                 catch (e) {
                     rej(Helpers.CreateError(e, 500));
@@ -121,46 +116,39 @@ class Methods {
         this.AuthUser = ({ password, nickname }) => {
             return new Promise((res, rej) => __awaiter(this, void 0, void 0, function* () {
                 try {
-                    (yield this.connect).collection(collections_1.collections.users).find({ nickname }).toArray((er, rl) => __awaiter(this, void 0, void 0, function* () {
-                        if (er) {
-                            rej(er);
-                        }
-                        ;
+                    this.Find(collections_1.collections.users, { nickname })
+                        .then((rl) => {
                         if (rl.length === 0) {
-                            rej(er);
+                            rej(Helpers.CreateError("User is not defined", 400));
                         }
                         ;
                         if (rl[0].blocked) {
+                            this.Delete(collections_1.collections.auth, { nickname });
                             rej(Helpers.CreateError("User is blocked", 400));
-                            (yield this.connect).collection(collections_1.collections.auth)
-                                .deleteOne({ nickname });
                         }
                         ;
                         console.log(password, rl);
                         try {
                             if (Helpers.IsValidPassword(password, rl[0].password)) {
                                 const token = Helpers.CreateToken(rl[0].nickname);
-                                (yield this.connect).collection(collections_1.collections.auth)
-                                    .find({ nickname })
-                                    .toArray((err, result) => __awaiter(this, void 0, void 0, function* () {
-                                    if (err) {
-                                        rej(Helpers.CreateError(err, 500));
-                                    }
-                                    ;
+                                this.Find(collections_1.collections.auth, { nickname })
+                                    .then((result) => {
                                     console.log("FindAuths", result);
                                     if (result.length === 0) {
-                                        (yield this.connect)
-                                            .collection(collections_1.collections.auth).insertOne({ nickname, token });
+                                        this.Insert(collections_1.collections.auth, { nickname, token });
                                     }
                                     else {
-                                        (yield this.connect)
-                                            .collection(collections_1.collections.auth)
-                                            .replaceOne({ nickname: rl[0].nickname }, { nickname: rl[0].nickname, token });
+                                        this.Replace(collections_1.collections.auth, { nickname: rl[0].nickname }, { nickname: rl[0].nickname, token })
+                                            .then(() => undefined)
+                                            .catch((err) => rej(err));
                                     }
                                     ;
-                                    (yield this.connect).collection(collections_1.collections.users)
-                                        .replaceOne({ nickname: rl[0].nickname }, Object.assign(Object.assign({}, rl[0]), { token }));
-                                }));
+                                    this.Replace(collections_1.collections.users, { nickname: rl[0].nickname }, Object.assign(Object.assign({}, rl[0]), { token }))
+                                        .then(() => undefined)
+                                        .catch((err) => rej(err));
+                                }).catch((err) => {
+                                    rej(err);
+                                });
                                 res(token);
                             }
                             ;
@@ -170,7 +158,9 @@ class Methods {
                         }
                         ;
                         rej(Helpers.CreateError("Password is not valid", 400));
-                    }));
+                    }).catch((err) => {
+                        rej(err);
+                    });
                 }
                 catch (e) {
                     rej(Helpers.CreateError(e, 500));
@@ -182,14 +172,23 @@ class Methods {
         this.GetUserByToken = (token) => {
             return new Promise((res, rej) => __awaiter(this, void 0, void 0, function* () {
                 try {
-                    (yield this.connect)
-                        .collection(collections_1.collections.users)
-                        .find({ token })
-                        .toArray((err, result) => {
+                    /*
+                    (await this.connect)
+                    .collection(collections.users)
+                    .find({ token })
+                    .toArray((err, result: ViewUsersModel[]) => {
                         if (err) {
                             rej(Helpers.CreateError(err, 500));
-                        }
-                        ;
+                        };
+                        if (result.length > 0) {
+                            console.log("GetUserByToken", result);
+                            const { nickname, blocked, confirmed, creationDate, role, _id } = result[0];
+                            res({ nickname, blocked, confirmed, creationDate, role, id: _id });
+                        };
+                        rej(Helpers.CreateError("User is not defined", 400));
+                    }); */
+                    this.Find(collections_1.collections.users, { token })
+                        .then((result) => {
                         if (result.length > 0) {
                             console.log("GetUserByToken", result);
                             const { nickname, blocked, confirmed, creationDate, role, _id } = result[0];
@@ -197,7 +196,7 @@ class Methods {
                         }
                         ;
                         rej(Helpers.CreateError("User is not defined", 400));
-                    });
+                    }).catch(err => res(err));
                 }
                 catch (e) {
                     rej(Helpers.CreateError(e, 500));

@@ -1,4 +1,4 @@
-import { NewsView, NewsState, CommentsView } from "./news";
+import { NewsView, NewsState, CommentsView, DeleteNewsView, CommentsState } from "./news";
 import { SignView, SignUpView } from "./user";
 
-export { NewsView, SignView, SignUpView, NewsState, CommentsView };
+export { NewsView, SignView, SignUpView, NewsState, CommentsView, DeleteNewsView, CommentsState };

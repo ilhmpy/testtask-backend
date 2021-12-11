@@ -5,8 +5,9 @@ import { Helpers as Help } from "./classes/Helpers";
 import { ObjectId } from "mongodb";
 import { Application } from "express";
 
-import { SignView, NewsView, SignUpView, NewsState, CommentsView } from "./interfaces/index";
+import { SignView, NewsView, SignUpView, NewsState, CommentsView, DeleteNewsView, CommentsState} from "./interfaces/index";
 import { NewsViewModel, UsersRoles } from "./types";
+import { collections } from "./consts/collections";
 
 const express = require("express");
 const cors = require("cors");
@@ -107,10 +108,10 @@ app.post("/InsertNews", (req, res) => {
         const body: NewsView = req.body;
         const { token, post } = body;
         console.log("InsertNews", token, post);
-        Methods.GetUserSuccessLevel(token)
+        Methods.GetUserAccessLevel(token)
             .then((rs) => {
                 if (rs >= UsersRoles.Editor) {
-                    Methods.Insert("posts", { ...post, comments: [], confirmed: false });
+                    Methods.Insert(collections.news, { ...post, comments: [], confirmed: false });
                     res.json(Helpers.CreateError("News added", 200));
                 } else {
                     res.json(Helpers.CreateError("User have'nt access", 400));
@@ -125,7 +126,7 @@ app.post("/InsertNews", (req, res) => {
 app.get("/GetNews", (req, res) => {
     try {
         const { id } = req.query;
-        Methods.Find("posts", id ? { _id: new ObjectId(id.toString()) } : {})
+        Methods.Find(collections.news, id ? { _id: new ObjectId(id.toString()) } : {})
             .then((rs) => {
                 console.log("GetPosts", rs);
                 res.json(rs);
@@ -140,11 +141,11 @@ app.post("/ChangeNewsState", (req, res) => {
         const body: NewsState = req.body;
         const { token, confirmed, id } = body;
         console.log("ChangeNewsState", body);
-        Methods.GetUserSuccessLevel(token)
+        Methods.GetUserAccessLevel(token)
             .then((level: UsersRoles) => {
                 const _id = new ObjectId(id.toString())
                 if (level === UsersRoles.Admin) {
-                    Methods.Replace("posts", { _id }, { confirmed });
+                    Methods.Replace(collections.news, { _id }, { confirmed });
                     res.json(Helpers.CreateError("News edited", 200));
                 };
             })
@@ -163,14 +164,14 @@ app.post("/InsertComment", (req, res) => {
         const _id = new ObjectId(newsId);
         console.log("InsertComment", body);
         if (body) {
-            Methods.Find("posts", { _id })
+            Methods.Find(collections.news, { _id })
                 .then((result: NewsViewModel[]) => {
                     const comments =  [...result[0].comments, {
                         nickname, email, creatorId, text, creationDate,
                         confirmed: false,
                     }];
                     console.log("NewComments", result, comments);
-                    Methods.Replace("posts", { _id }, { comments })
+                    Methods.Replace(collections.news, { _id }, { comments })
                         .then(() => {
                             res.json(Helpers.CreateError(`Comment add to ${_id} news`, 200));
                         }).catch((er) => {
@@ -184,6 +185,66 @@ app.post("/InsertComment", (req, res) => {
     } catch(e) {
         console.log(e);
     };
+});
+
+app.post("/DeleteNews", (req, res) => {
+    const body: DeleteNewsView = req.body;
+    const { token, id } = body;
+    Methods.GetUserAccessLevel(token)
+        .then((level: UsersRoles) => {
+            const _id = new ObjectId(id);
+            if (level >= UsersRoles.Editor) {
+                Methods.Delete(collections.news, { _id })
+                    .then(() => {
+                        res.json(Helpers.CreateError("News deleted", 200));
+                    }).catch((err) => {
+                        res.json(err);
+                    });
+            } else {
+                res.json(Helpers.CreateError("User haven't success", 400));
+            };
+        }).catch((er) => {
+            res.json(er);
+        });
+});
+
+app.post("/ChangeCommentState", (req, res) => {
+    const body: CommentsState = req.body;
+    const { token, id, idx, confirmed } = body;
+    if (body) {
+        try {
+            Methods.GetUserAccessLevel(token)
+                .then((level) => {
+                    if (level >= UsersRoles.Editor) {
+                        const _id = new ObjectId(id);
+                        Methods.Find(collections.news, { _id })
+                            .then((rs: NewsViewModel[]) => {
+                                if (rs.length > 0) {
+                                    console.log("ChangeCommentState", rs);
+                                    const newData = { ...rs[0], comments: [...rs[0].comments ]};
+                                    const edit = newData.comments[idx];
+                                    if (edit) {
+                                        edit.confirmed = confirmed;
+                                        Methods.Replace(collections.news, { _id }, newData);
+                                        res.json(newData);
+                                    } else {
+                                        res.json(Helpers.CreateError("Comment is not defined", 400));
+                                    };
+                                } else {
+                                    res.json(Helpers.CreateError("News is not defined", 400));
+                                };
+                            }).catch((err) => res.json(err));
+                    } else {
+                        res.json(Helpers.CreateError("User haven't success", 400));
+                    };
+                }).catch((err) => {
+                    res.json(err);
+                });
+        } catch(e) {
+            console.log(e);
+            res.json(Helpers.CreateError(e, 500));
+        };
+    }
 });
 
 app.listen(PORT, () => console.log(`Server started http://localhost:${PORT}`));

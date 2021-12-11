@@ -2,6 +2,7 @@ import { Helpers as Help } from "./Helpers";
 import { UsersRoles, ViewUsersModel } from "../types/user";
 import { NewsViewModel, Auth } from "../types";
 import { SignUpView } from "../interfaces";
+import { collections } from "../consts/collections";
 
 const Helpers = new Help();
 
@@ -13,12 +14,13 @@ export class Methods {
 
     // обрабатывает и возвращает роль пользователя
 
-    public GetUserSuccessLevel = (token: string) => {
+    public GetUserAccessLevel = (token: string) => {
         return new Promise(async (res, rej) => {
             try {
-                this.GetAuth(token)
+                if (token) {
+                    this.GetAuth(token)
                     .then(async (rs) => {
-                        this.Find("users", { token })
+                        this.Find(collections.users, { token })
                             .then((rs: ViewUsersModel[]) => {
                                 res(rs[0].role);
                             })
@@ -29,6 +31,9 @@ export class Methods {
                     .catch(e => {
                         rej(e);
                     });
+                } else {
+                    rej(Helpers.CreateError("Token is undefined", 400));
+                }
             } catch (e) {
                 rej(Helpers.CreateError(e, 500));
             };
@@ -41,7 +46,7 @@ export class Methods {
         return new Promise(async (res, rej) => {
             try {
 
-                this.Find("users", { nickname })
+                this.Find(collections.users, { nickname })
                     .then(async (result: ViewUsersModel[]) => {
                         if (result.length > 0) {
                             rej(Helpers.CreateError("User already exist", 400));
@@ -49,7 +54,7 @@ export class Methods {
                             const pwd = Helpers.CreatePassword(password);
                             const token = Helpers.CreateToken(nickname);
                             // console.log(token);
-                            this.Insert("users", {
+                            this.Insert(collections.users, {
                                 password: pwd,
                                 token,
                                 nickname,
@@ -75,18 +80,18 @@ export class Methods {
         return new Promise(async (res, rej) => {
             try {
                 (await this.connect)
-                    .collection("auth")
+                    .collection(collections.auth)
                     .find({ token })
                     .toArray(async (err, result: Auth[]) => {
                         if (err) {
                             rej(Helpers.CreateError(err, 500));
                         };
                         if (result && result.length > 0) {
-                            this.Find("users", { nickname: result[0].nickname })
+                            this.Find(collections.users, { nickname: result[0].nickname })
                                 .then(async (result: ViewUsersModel[]) => {
                                     if (result[0].blocked) {
                                         rej(Helpers.CreateError("User is blocked", 400));
-                                        (await this.connect).collection("auth")
+                                        (await this.connect).collection(collections.auth)
                                             .deleteOne({ nickname: result[0].nickname });
                                     };
                                 }).catch((err) => {
@@ -109,7 +114,7 @@ export class Methods {
     public AuthUser = ({ password, nickname }) => {
         return new Promise(async (res, rej) => {
             try {
-                    (await this.connect).collection("users").find({ nickname }).toArray(async (er, rl: ViewUsersModel[]) => {
+                    (await this.connect).collection(collections.users).find({ nickname }).toArray(async (er, rl: ViewUsersModel[]) => {
                         if (er) {
                             rej(er);
                         };
@@ -118,14 +123,14 @@ export class Methods {
                         };
                         if (rl[0].blocked) {
                             rej(Helpers.CreateError("User is blocked", 400));
-                            (await this.connect).collection("auth")
+                            (await this.connect).collection(collections.auth)
                                 .deleteOne({ nickname });
                         };
                         console.log(password, rl);
                         try {
                             if (Helpers.IsValidPassword(password, rl[0].password)) {
                                 const token = Helpers.CreateToken(rl[0].nickname);
-                                (await this.connect).collection("auth")
+                                (await this.connect).collection(collections.auth)
                                     .find({ nickname })
                                     .toArray(async (err, result) => {
                                         if (err) {
@@ -134,13 +139,13 @@ export class Methods {
                                         console.log("FindAuths", result);
                                         if (result.length === 0) {
                                             (await this.connect)
-                                                .collection("auth").insertOne({ nickname, token });
+                                                .collection(collections.auth).insertOne({ nickname, token });
                                         } else {
                                             (await this.connect)
-                                                .collection("auth")
+                                                .collection(collections.auth)
                                                     .replaceOne({ nickname: rl[0].nickname }, { nickname: rl[0].nickname, token });
                                         };
-                                        (await this.connect).collection("users")
+                                        (await this.connect).collection(collections.users)
                                             .replaceOne({ nickname: rl[0].nickname }, { ...rl[0], token });
                                     });
                                     res(token);
@@ -162,7 +167,7 @@ export class Methods {
         return new Promise(async (res, rej) => {
             try {
                 (await this.connect)
-                .collection("users")
+                .collection(collections.users)
                 .find({ token })
                 .toArray((err, result: ViewUsersModel[]) => { 
                     if (err) {
@@ -228,5 +233,11 @@ export class Methods {
                 console.log(e)
             };
         });
+    };
+
+    public Delete = async (collection: string, deleteData) => {
+        (await this.connect)
+            .collection(collection)
+            .deleteOne(deleteData);
     };
 };

@@ -19,3 +19,15 @@ export interface CommentsView {
     creationDate: Date;
     newsId: string;
 };
+
+export interface DeleteNewsView {
+    id: string;
+    token: string;
+};
+
+export interface CommentsState {
+    token: string;
+    id: string;
+    idx: number;
+    confirmed: boolean;
+};

@@ -6,6 +6,7 @@ const db_1 = require("./db");
 const Helpers_1 = require("./classes/Helpers");
 const mongodb_1 = require("mongodb");
 const types_1 = require("./types");
+const collections_1 = require("./consts/collections");
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
@@ -104,10 +105,10 @@ app.post("/InsertNews", (req, res) => {
         const body = req.body;
         const { token, post } = body;
         console.log("InsertNews", token, post);
-        Methods.GetUserSuccessLevel(token)
+        Methods.GetUserAccessLevel(token)
             .then((rs) => {
             if (rs >= types_1.UsersRoles.Editor) {
-                Methods.Insert("posts", Object.assign(Object.assign({}, post), { comments: [], confirmed: false }));
+                Methods.Insert(collections_1.collections.news, Object.assign(Object.assign({}, post), { comments: [], confirmed: false }));
                 res.json(Helpers.CreateError("News added", 200));
             }
             else {
@@ -125,7 +126,7 @@ app.post("/InsertNews", (req, res) => {
 app.get("/GetNews", (req, res) => {
     try {
         const { id } = req.query;
-        Methods.Find("posts", id ? { _id: new mongodb_1.ObjectId(id.toString()) } : {})
+        Methods.Find(collections_1.collections.news, id ? { _id: new mongodb_1.ObjectId(id.toString()) } : {})
             .then((rs) => {
             console.log("GetPosts", rs);
             res.json(rs);
@@ -141,11 +142,11 @@ app.post("/ChangeNewsState", (req, res) => {
         const body = req.body;
         const { token, confirmed, id } = body;
         console.log("ChangeNewsState", body);
-        Methods.GetUserSuccessLevel(token)
+        Methods.GetUserAccessLevel(token)
             .then((level) => {
             const _id = new mongodb_1.ObjectId(id.toString());
             if (level === types_1.UsersRoles.Admin) {
-                Methods.Replace("posts", { _id }, { confirmed });
+                Methods.Replace(collections_1.collections.news, { _id }, { confirmed });
                 res.json(Helpers.CreateError("News edited", 200));
             }
             ;
@@ -166,14 +167,14 @@ app.post("/InsertComment", (req, res) => {
         const _id = new mongodb_1.ObjectId(newsId);
         console.log("InsertComment", body);
         if (body) {
-            Methods.Find("posts", { _id })
+            Methods.Find(collections_1.collections.news, { _id })
                 .then((result) => {
                 const comments = [...result[0].comments, {
                         nickname, email, creatorId, text, creationDate,
                         confirmed: false,
                     }];
                 console.log("NewComments", result, comments);
-                Methods.Replace("posts", { _id }, { comments })
+                Methods.Replace(collections_1.collections.news, { _id }, { comments })
                     .then(() => {
                     res.json(Helpers.CreateError(`Comment add to ${_id} news`, 200));
                 }).catch((er) => {
@@ -190,6 +191,74 @@ app.post("/InsertComment", (req, res) => {
         console.log(e);
     }
     ;
+});
+app.post("/DeleteNews", (req, res) => {
+    const body = req.body;
+    const { token, id } = body;
+    Methods.GetUserAccessLevel(token)
+        .then((level) => {
+        const _id = new mongodb_1.ObjectId(id);
+        if (level >= types_1.UsersRoles.Editor) {
+            Methods.Delete(collections_1.collections.news, { _id })
+                .then(() => {
+                res.json(Helpers.CreateError("News deleted", 200));
+            }).catch((err) => {
+                res.json(err);
+            });
+        }
+        else {
+            res.json(Helpers.CreateError("User haven't success", 400));
+        }
+        ;
+    }).catch((er) => {
+        res.json(er);
+    });
+});
+app.post("/ChangeCommentState", (req, res) => {
+    const body = req.body;
+    const { token, id, idx, confirmed } = body;
+    if (body) {
+        try {
+            Methods.GetUserAccessLevel(token)
+                .then((level) => {
+                if (level >= types_1.UsersRoles.Editor) {
+                    const _id = new mongodb_1.ObjectId(id);
+                    Methods.Find(collections_1.collections.news, { _id })
+                        .then((rs) => {
+                        if (rs.length > 0) {
+                            console.log("ChangeCommentState", rs);
+                            const newData = Object.assign(Object.assign({}, rs[0]), { comments: [...rs[0].comments] });
+                            const edit = newData.comments[idx];
+                            if (edit) {
+                                edit.confirmed = confirmed;
+                                Methods.Replace(collections_1.collections.news, { _id }, newData);
+                                res.json(newData);
+                            }
+                            else {
+                                res.json(Helpers.CreateError("Comment is not defined", 400));
+                            }
+                            ;
+                        }
+                        else {
+                            res.json(Helpers.CreateError("News is not defined", 400));
+                        }
+                        ;
+                    }).catch((err) => res.json(err));
+                }
+                else {
+                    res.json(Helpers.CreateError("User haven't success", 400));
+                }
+                ;
+            }).catch((err) => {
+                res.json(err);
+            });
+        }
+        catch (e) {
+            console.log(e);
+            res.json(Helpers.CreateError(e, 500));
+        }
+        ;
+    }
 });
 app.listen(port_1.PORT, () => console.log(`Server started http://localhost:${port_1.PORT}`));
 //# sourceMappingURL=index.js.map

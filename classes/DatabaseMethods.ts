@@ -43,7 +43,7 @@ export class DatabaseMethods {
                     .then(async (rs: any[]) => {
                         if (rs.length > 0) {
                             (await this.connect).collection(collection).replaceOne(find, { ...rs[0], ...newData });
-                            res(rs[0]);
+                            res(rs);
                         } else {
                             rej(Helpers.CreateError("Is not defined // Replace ", 400));
                         };

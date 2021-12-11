@@ -12,4 +12,5 @@ export type ViewUsersModel = {
     confirmed: boolean;
     blocked: boolean;
     role: UsersRoles;
+    token: string;
 };

@@ -52,7 +52,7 @@ class DatabaseMethods {
                         .then((rs) => __awaiter(this, void 0, void 0, function* () {
                         if (rs.length > 0) {
                             (yield this.connect).collection(collection).replaceOne(find, Object.assign(Object.assign({}, rs[0]), newData));
-                            res(rs[0]);
+                            res(rs);
                         }
                         else {
                             rej(Helpers.CreateError("Is not defined // Replace ", 400));

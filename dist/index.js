@@ -195,26 +195,31 @@ app.post("/InsertComment", (req, res) => {
     ;
 });
 app.post("/DeleteNews", (req, res) => {
-    const body = req.body;
-    const { token, id } = body;
-    Methods.GetUserAccessLevel(token)
-        .then((level) => {
-        const _id = new mongodb_1.ObjectId(id);
-        if (level >= types_1.UsersRoles.Editor) {
-            DB.Delete(collections_1.collections.news, { _id })
-                .then(() => {
-                res.json(Helpers.CreateError("News deleted", 200));
-            }).catch((err) => {
-                res.json(err);
-            });
-        }
-        else {
-            res.json(Helpers.CreateError("User haven't success", 400));
-        }
-        ;
-    }).catch((er) => {
-        res.json(er);
-    });
+    try {
+        const body = req.body;
+        const { token, id } = body;
+        Methods.GetUserAccessLevel(token)
+            .then((level) => {
+            const _id = new mongodb_1.ObjectId(id);
+            if (level >= types_1.UsersRoles.Editor) {
+                DB.Delete(collections_1.collections.news, { _id })
+                    .then(() => {
+                    res.json(Helpers.CreateError("News deleted", 200));
+                }).catch((err) => {
+                    res.json(err);
+                });
+            }
+            else {
+                res.json(Helpers.CreateError("User haven't success", 400));
+            }
+            ;
+        }).catch((er) => {
+            res.json(er);
+        });
+    }
+    catch (e) {
+        res.json(Helpers.CreateError(e, 400));
+    }
 });
 app.post("/ChangeCommentState", (req, res) => {
     const body = req.body;
@@ -261,6 +266,68 @@ app.post("/ChangeCommentState", (req, res) => {
         }
         ;
     }
+    ;
+});
+app.get("/GetEditors", (req, res) => {
+    try {
+        const { token } = req.query;
+        Methods.GetUserAccessLevel(token.toString())
+            .then((level) => {
+            if (level === types_1.UsersRoles.Admin) {
+                DB.Find(collections_1.collections.users, {})
+                    .then((result) => {
+                    res.json(result.map(({ nickname, creationDate, confirmed, blocked, role, _id }) => {
+                        return ({ nickname, creationDate, confirmed, blocked, role, _id });
+                    }).filter((i) => i.token !== token));
+                }).catch((err) => res.json(Helpers.CreateError(err, 500)));
+            }
+            else {
+                res.json(Helpers.CreateError("User haven't success", 400));
+            }
+            ;
+        }).catch((err) => res.json(err));
+    }
+    catch (e) {
+        res.json(Helpers.CreateError(e, 400));
+    }
+});
+app.post("/ChangeEditorBlocked", (req, res) => {
+    const { bool, token, id } = req.body;
+    console.log("ChangeEditor/Blocked", req.body);
+    Methods.GetUserAccessLevel(token.toString())
+        .then((level) => {
+        if (level === types_1.UsersRoles.Admin) {
+            const _id = new mongodb_1.ObjectId(id);
+            DB.Replace(collections_1.collections.users, { _id }, { blocked: bool })
+                .then(() => res.json(Helpers.CreateError("User edited", 200)))
+                .catch((err) => res.json(err));
+        }
+        else {
+            res.json(Helpers.CreateError("User haven't success", 400));
+        }
+        ;
+    }).catch((err) => {
+        res.json(err);
+    });
+});
+app.post("/ChangeEditorConfirmed", (req, res) => {
+    const { bool, token, id } = req.body;
+    console.log("ChangeEditor/Confirmed", req.body);
+    Methods.GetUserAccessLevel(token.toString())
+        .then((level) => {
+        if (level === types_1.UsersRoles.Admin) {
+            const _id = new mongodb_1.ObjectId(id);
+            DB.Replace(collections_1.collections.users, { _id }, { confirmed: bool })
+                .then(() => res.json(Helpers.CreateError("User edited", 200)))
+                .catch((err) => res.json(err));
+        }
+        else {
+            res.json(Helpers.CreateError("User haven't success", 400));
+        }
+        ;
+    }).catch((err) => {
+        res.json(err);
+    });
 });
 app.listen(port_1.PORT, () => console.log(`Server started http://localhost:${port_1.PORT}`));
 //# sourceMappingURL=index.js.map

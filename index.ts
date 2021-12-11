@@ -9,6 +9,7 @@ import { SignView, NewsView, SignUpView, NewsState, CommentsView, DeleteNewsView
 import { NewsViewModel, UsersRoles } from "./types";
 import { collections } from "./consts/collections";
 import { DatabaseMethods } from "./classes/DatabaseMethods";
+import { ViewUsersModel } from "./types/user";
 
 const express = require("express");
 const cors = require("cors");
@@ -190,24 +191,28 @@ app.post("/InsertComment", (req, res) => {
 });
 
 app.post("/DeleteNews", (req, res) => {
-    const body: DeleteNewsView = req.body;
-    const { token, id } = body;
-    Methods.GetUserAccessLevel(token)
-        .then((level: UsersRoles) => {
-            const _id = new ObjectId(id);
-            if (level >= UsersRoles.Editor) {
-                DB.Delete(collections.news, { _id })
-                    .then(() => {
-                        res.json(Helpers.CreateError("News deleted", 200));
-                    }).catch((err) => {
-                        res.json(err);
-                    });
-            } else {
-                res.json(Helpers.CreateError("User haven't success", 400));
-            };
-        }).catch((er) => {
-            res.json(er);
-        });
+    try {
+        const body: DeleteNewsView = req.body;
+        const { token, id } = body;
+        Methods.GetUserAccessLevel(token)
+            .then((level: UsersRoles) => {
+                const _id = new ObjectId(id);
+                if (level >= UsersRoles.Editor) {
+                    DB.Delete(collections.news, { _id })
+                        .then(() => {
+                            res.json(Helpers.CreateError("News deleted", 200));
+                        }).catch((err) => {
+                            res.json(err);
+                        });
+                } else {
+                    res.json(Helpers.CreateError("User haven't success", 400));
+                };
+            }).catch((er) => {
+                res.json(er);
+            });
+    } catch(e) {
+        res.json(Helpers.CreateError(e, 400));
+    }
 });
 
 app.post("/ChangeCommentState", (req, res) => {
@@ -246,7 +251,66 @@ app.post("/ChangeCommentState", (req, res) => {
             console.log(e);
             res.json(Helpers.CreateError(e, 500));
         };
+    };
+});
+
+app.get("/GetEditors", (req, res) => {
+    try {
+        const { token } = req.query;
+        Methods.GetUserAccessLevel(token.toString())
+            .then((level) => {
+                if (level === UsersRoles.Admin) {
+                    DB.Find(collections.users, {})
+                        .then((result: ViewUsersModel[]) => {
+                            res.json(
+                                result.map(
+                                    ({ nickname, creationDate, confirmed, blocked, role, _id }) => {
+                                        return ({ nickname, creationDate, confirmed, blocked, role, _id })
+                                    }).filter((i: ViewUsersModel) => i.token !== token));
+                        }).catch((err) => res.json(Helpers.CreateError(err, 500)));
+                } else {
+                    res.json(Helpers.CreateError("User haven't success", 400));
+                };
+            }).catch((err) => res.json(err));
+    } catch(e) {
+        res.json(Helpers.CreateError(e, 400));
     }
 });
+
+app.post("/ChangeEditorBlocked", (req, res) => {
+    const { bool, token, id } = req.body;
+    console.log("ChangeEditor/Blocked", req.body);
+    Methods.GetUserAccessLevel(token.toString())
+        .then((level) => {
+            if (level === UsersRoles.Admin) {
+                const _id = new ObjectId(id);
+                DB.Replace(collections.users, { _id }, { blocked: bool })
+                    .then(() => res.json(Helpers.CreateError("User edited", 200)))
+                    .catch((err) => res.json(err));
+            } else {
+                res.json(Helpers.CreateError("User haven't success", 400));
+            };
+        }).catch((err) => {
+            res.json(err);
+        });
+}); 
+
+app.post("/ChangeEditorConfirmed", (req, res) => {
+    const { bool, token, id } = req.body;
+    console.log("ChangeEditor/Confirmed", req.body);
+    Methods.GetUserAccessLevel(token.toString())
+        .then((level) => {
+            if (level === UsersRoles.Admin) {
+                const _id = new ObjectId(id);
+                DB.Replace(collections.users, { _id }, { confirmed: bool })
+                    .then(() => res.json(Helpers.CreateError("User edited", 200)))
+                    .catch((err) => res.json(err));
+            } else {
+                res.json(Helpers.CreateError("User haven't success", 400));
+            };
+        }).catch((err) => {
+            res.json(err);
+        });
+}); 
 
 app.listen(PORT, () => console.log(`Server started http://localhost:${PORT}`));

@@ -12,7 +12,7 @@ const DB = new DatabaseMethods(connect);
 export class Methods {
     connect: any;
     constructor(connect: any) {
-        this.connect = connect();
+        this.connect = connect(); 
     };
 
     // обрабатывает и возвращает роль пользователя

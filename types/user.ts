@@ -5,8 +5,11 @@ export enum UsersRoles {
 };
 
 export type ViewUsersModel = {
-    email: string;
+    _id: string;
     password: string;
     nickname: string;
     creationDate: Date;
+    confirmed: boolean;
+    blocked: boolean;
+    role: UsersRoles;
 };

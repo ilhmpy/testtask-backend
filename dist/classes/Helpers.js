@@ -9,17 +9,39 @@ const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 class Helpers {
     constructor() {
         this.CreateToken = (email) => {
-            return jsonwebtoken_1.default.sign({ email }, "MySuP3R_z3kr3t", { expiresIn: "6h" });
-            ;
+            try {
+                return jsonwebtoken_1.default.sign({ email }, "MySuP3R_z3kr3t", { expiresIn: "6h" });
+                ;
+            }
+            catch (e) {
+                console.log(e);
+            }
         };
         this.CreatePassword = (password) => {
-            return bcrypt_1.default.hashSync(password, bcrypt_1.default.genSaltSync(10), null);
+            try {
+                return bcrypt_1.default.hashSync(password, bcrypt_1.default.genSaltSync(10), null);
+            }
+            catch (e) {
+                console.log(e);
+            }
         };
         this.IsValidPassword = (password, getPassword) => {
-            return bcrypt_1.default.compareSync(password, getPassword);
+            try {
+                console.log(password, getPassword);
+                return bcrypt_1.default.compareSync(password, getPassword);
+            }
+            catch (e) {
+                console.log(e);
+            }
         };
         this.CreateError = (error, status) => {
-            return { error, status };
+            try {
+                const data = { error, status };
+                return data;
+            }
+            catch (e) {
+                console.log(e);
+            }
         };
     }
 }

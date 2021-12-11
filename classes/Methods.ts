@@ -1,5 +1,7 @@
 import { Helpers as Help } from "./Helpers";
 import { UsersRoles, ViewUsersModel } from "../types/user";
+import { NewsViewModel, Auth } from "../types";
+import { SignUpView } from "../interfaces";
 
 const Helpers = new Help();
 
@@ -9,13 +11,15 @@ export class Methods {
         this.connect = connect();
     }
 
+    // обрабатывает и возвращает роль пользователя
+
     public GetUserSuccessLevel = (token: string) => {
         return new Promise(async (res, rej) => {
             try {
                 this.GetAuth(token)
                     .then(async (rs) => {
                         this.Find("users", { token })
-                            .then((rs) => {
+                            .then((rs: ViewUsersModel[]) => {
                                 res(rs[0].role);
                             })
                             .catch((e) => {
@@ -31,14 +35,15 @@ export class Methods {
         });
     };
 
-    
-    public CreateUser = ({ password, nickname, creationDate }: ViewUsersModel) => {
+    // создает пользователя
+
+    public CreateUser = ({ password, nickname, creationDate }: SignUpView) => {
         return new Promise(async (res, rej) => {
             try {
                 (await this.connect)
                     .collection("users")
                     .find({ nickname })
-                    .toArray(async (err, result) => {
+                    .toArray(async (err, result: ViewUsersModel[]) => {
                         if (err) {
                             rej(err);
                         };
@@ -66,22 +71,30 @@ export class Methods {
         });
     };
 
+    // проверяет авторизацию и возвращает пользователя если тот авторизован и не заблокирован
+
     public GetAuth = (token: string) => {
         return new Promise(async (res, rej) => {
             try {
                 (await this.connect)
                     .collection("auth")
                     .find({ token })
-                    .toArray(async (err, result) => {
+                    .toArray(async (err, result: Auth[]) => {
                         if (err) {
                             rej(Helpers.CreateError(err, 500));
                         };
-                        // console.log(result);
-                        /* if (result[0].blocked) {
-                            rej(Helpers.CreateError("User is blocked", 400));
-                            (await this.connect).collection("auth")
-                                .deleteOne({ nickname: result[0].nickname });
-                        }; */
+                        console.log(result);
+                        (await this.connect).collection("users").find({ nickname: result[0].nickname }).toArray(
+                            async (err, result: ViewUsersModel) => {
+                                if (err) {
+                                    rej(Helpers.CreateError(err, 500));
+                                };
+                                if (result[0].blocked) {
+                                    rej(Helpers.CreateError("User is blocked", 400));
+                                    (await this.connect).collection("auth")
+                                        .deleteOne({ nickname: result[0].nickname });
+                                };
+                        });
                         if (result.length > 0) {
                             res([]);
                         };
@@ -93,43 +106,49 @@ export class Methods {
         });
     };
 
+    // авторизует пользователя, проверяет его наличие и добавляет новый токен обновляя сущность в коллекции пользователей
+
     public AuthUser = ({ password, nickname }) => {
         return new Promise(async (res, rej) => {
             try {
-                    (await this.connect).collection("users").find({ nickname }).toArray(async (er, rl) => {
+                    (await this.connect).collection("users").find({ nickname }).toArray(async (er, rl: ViewUsersModel[]) => {
                         if (er) {
                             rej(er);
                         };
                         if (rl.length === 0) {
                             rej(er);
                         };
-                        /*
                         if (rl[0].blocked) {
                             rej(Helpers.CreateError("User is blocked", 400));
                             (await this.connect).collection("auth")
                                 .deleteOne({ nickname });
-                        }; */
-                        if (Helpers.IsValidPassword(password, rl[0].password)) {
-                            const token = Helpers.CreateToken(rl[0].nickname);
-                            (await this.connect).collection("auth")
-                                .find({ nickname })
-                                .toArray(async (err, result) => {
-                                    if (err) {
-                                        rej(Helpers.CreateError(err, 500));
-                                    };
-                                    console.log("FindAuths", result);
-                                    if (result.length === 0) {
-                                        (await this.connect)
-                                            .collection("auth").insertOne({ nickname, token });
-                                    } else {
-                                        (await this.connect)
-                                            .collection("auth")
-                                                .replaceOne({ nickname: rl[0].nickname }, { nickname: rl[0].nickname, token });
-                                    };
-                                    (await this.connect).collection("users")
-                                        .replaceOne({ nickname: rl[0].nickname }, { ...rl[0], token });
-                                });
-                                res(token);
+                        };
+                        console.log(password, rl);
+                        try {
+                            if (Helpers.IsValidPassword(password, rl[0].password)) {
+                                const token = Helpers.CreateToken(rl[0].nickname);
+                                (await this.connect).collection("auth")
+                                    .find({ nickname })
+                                    .toArray(async (err, result) => {
+                                        if (err) {
+                                            rej(Helpers.CreateError(err, 500));
+                                        };
+                                        console.log("FindAuths", result);
+                                        if (result.length === 0) {
+                                            (await this.connect)
+                                                .collection("auth").insertOne({ nickname, token });
+                                        } else {
+                                            (await this.connect)
+                                                .collection("auth")
+                                                    .replaceOne({ nickname: rl[0].nickname }, { nickname: rl[0].nickname, token });
+                                        };
+                                        (await this.connect).collection("users")
+                                            .replaceOne({ nickname: rl[0].nickname }, { ...rl[0], token });
+                                    });
+                                    res(token);
+                            };
+                        } catch(e) {
+                            console.log(e, rl[0].password);
                         };
                         rej(Helpers.CreateError("Password is not valid", 400));
                     });
@@ -139,13 +158,15 @@ export class Methods {
         });
     };
 
+    // возвращает пользователя по token'у перед этим действием нужно проверить уровень доступа отправлявшего с помощью GetUserLevelSuccess
+
     public GetUserByToken = (token: string) => {
         return new Promise(async (res, rej) => {
             try {
                 (await this.connect)
                 .collection("users")
                 .find({ token })
-                .toArray((err, result) => { 
+                .toArray((err, result: ViewUsersModel[]) => { 
                     if (err) {
                         rej(Helpers.CreateError(err, 500));
                     };
@@ -162,6 +183,8 @@ export class Methods {
         });
     };
 
+    // добавляет в бд новый элемент (сделать рефакторинг методов класса в будущем)
+
     public Insert = async (collection: string, data) => {
         try {
             (await this.connect)
@@ -171,6 +194,8 @@ export class Methods {
             console.log(e);
         };
     };
+
+    // аналогично 
 
     public Find = (collection: string, find) => {
         return new Promise(async (res, rej) => {
@@ -186,6 +211,25 @@ export class Methods {
                     });
             } catch(e) {
                 console.log(e);
+            };
+        });
+    };
+
+    public Replace = (collection: string, find, newData) => {
+        return new Promise(async (res, rej) => {
+            try {
+                this.Find(collection, find)
+                    .then(async (rs: any[]) => {
+                        if (rs.length > 0) {
+                            (await this.connect).collection(collection).replaceOne(find, { ...rs[0], newData });
+                            res(true);
+                        } else {
+                            rej(Helpers.CreateError("Is not defined // Replace ", 400));
+                        };
+                    })
+                    .catch((e) => rej(Helpers.CreateError(e, 500)));
+            } catch(e) {
+                console.log(e)
             };
         });
     };

@@ -86,12 +86,19 @@ class Methods {
                             rej(Helpers.CreateError(err, 500));
                         }
                         ;
-                        // console.log(result);
-                        /* if (result[0].blocked) {
-                            rej(Helpers.CreateError("User is blocked", 400));
-                            (await this.connect).collection("auth")
-                                .deleteOne({ nickname: result[0].nickname });
-                        }; */
+                        console.log(result);
+                        (yield this.connect).collection("users").find({ nickname: result[0].nickname }).toArray((err, result) => __awaiter(this, void 0, void 0, function* () {
+                            if (err) {
+                                rej(Helpers.CreateError(err, 500));
+                            }
+                            ;
+                            if (result[0].blocked) {
+                                rej(Helpers.CreateError("User is blocked", 400));
+                                (yield this.connect).collection("auth")
+                                    .deleteOne({ nickname: result[0].nickname });
+                            }
+                            ;
+                        }));
                         if (result.length > 0) {
                             res([]);
                         }
@@ -117,36 +124,43 @@ class Methods {
                             rej(er);
                         }
                         ;
-                        /*
                         if (rl[0].blocked) {
                             rej(Helpers.CreateError("User is blocked", 400));
-                            (await this.connect).collection("auth")
-                                .deleteOne({ nickname });
-                        }; */
-                        if (Helpers.IsValidPassword(password, rl[0].password)) {
-                            const token = Helpers.CreateToken(rl[0].nickname);
                             (yield this.connect).collection("auth")
-                                .find({ nickname })
-                                .toArray((err, result) => __awaiter(this, void 0, void 0, function* () {
-                                if (err) {
-                                    rej(Helpers.CreateError(err, 500));
-                                }
-                                ;
-                                console.log("FindAuths", result);
-                                if (result.length === 0) {
-                                    (yield this.connect)
-                                        .collection("auth").insertOne({ nickname, token });
-                                }
-                                else {
-                                    (yield this.connect)
-                                        .collection("auth")
-                                        .replaceOne({ nickname: rl[0].nickname }, { nickname: rl[0].nickname, token });
-                                }
-                                ;
-                                (yield this.connect).collection("users")
-                                    .replaceOne({ nickname: rl[0].nickname }, Object.assign(Object.assign({}, rl[0]), { token }));
-                            }));
-                            res(token);
+                                .deleteOne({ nickname });
+                        }
+                        ;
+                        console.log(password, rl);
+                        try {
+                            if (Helpers.IsValidPassword(password, rl[0].password)) {
+                                const token = Helpers.CreateToken(rl[0].nickname);
+                                (yield this.connect).collection("auth")
+                                    .find({ nickname })
+                                    .toArray((err, result) => __awaiter(this, void 0, void 0, function* () {
+                                    if (err) {
+                                        rej(Helpers.CreateError(err, 500));
+                                    }
+                                    ;
+                                    console.log("FindAuths", result);
+                                    if (result.length === 0) {
+                                        (yield this.connect)
+                                            .collection("auth").insertOne({ nickname, token });
+                                    }
+                                    else {
+                                        (yield this.connect)
+                                            .collection("auth")
+                                            .replaceOne({ nickname: rl[0].nickname }, { nickname: rl[0].nickname, token });
+                                    }
+                                    ;
+                                    (yield this.connect).collection("users")
+                                        .replaceOne({ nickname: rl[0].nickname }, Object.assign(Object.assign({}, rl[0]), { token }));
+                                }));
+                                res(token);
+                            }
+                            ;
+                        }
+                        catch (e) {
+                            console.log(e, rl[0].password);
                         }
                         ;
                         rej(Helpers.CreateError("Password is not valid", 400));

@@ -19,7 +19,7 @@ app.use(bodyParser.json());
 app.use(express.json({ limit: "1kb" }));
 app.use((req, res, next) => {
     if (toobusy()) {
-        res.send(503, "Server Too Busy");
+        res.json({ server: "Server Too Busy", status: 503 });
     }
     else {
         next();
@@ -36,66 +36,92 @@ app.get('/', (req, res) => {
     });
 });
 app.get("/GetAuth", (req, res) => {
-    const { Token } = req.query;
-    Methods.GetAuth(Token)
-        .then((rs) => {
-        Methods.GetUserByToken(Token)
-            .then((rsr) => {
-            res.json(rsr);
+    try {
+        const { Token } = req.query;
+        Methods.GetAuth(Token.toString())
+            .then((rs) => {
+            Methods.GetUserByToken(Token.toString())
+                .then((rsr) => {
+                res.json(rsr);
+            })
+                .catch((e) => {
+                console.log(e);
+                res.json(e);
+            });
         })
-            .catch((e) => {
-            console.log(e);
-            res.json(e);
+            .catch((err) => {
+            console.log(err);
+            res.json(err);
         });
-    })
-        .catch((err) => {
-        console.log(err);
-        res.json(err);
-    });
+    }
+    catch (e) {
+        console.log(e);
+    }
 });
 app.post("/CreateUser", (req, res) => {
-    Methods.CreateUser(req.body)
-        .then((user) => {
-        res.json(user);
-    })
-        .catch((error) => {
-        console.log(error);
-        res.json(error);
-    });
+    const body = req.body;
+    try {
+        Methods.CreateUser(body)
+            .then((user) => {
+            res.json(user);
+        })
+            .catch((error) => {
+            console.log(error);
+            res.json(error);
+        });
+    }
+    catch (e) {
+        console.log(e);
+    }
+    ;
 });
 app.post("/AuthUser", (req, res) => {
-    Methods.AuthUser(req.body)
-        .then((token) => {
-        console.log(token);
-        res.json({ token });
-    })
-        .catch((e) => {
-        res.json(e);
-    });
+    try {
+        const body = req.body;
+        console.log(body);
+        Methods.AuthUser(body)
+            .then((token) => {
+            console.log(token);
+            res.json({ token });
+        })
+            .catch((e) => {
+            res.json(e);
+        });
+    }
+    catch (e) {
+        console.log(e);
+    }
+    ;
 });
-app.post("/InsertPost", (req, res) => {
-    const { token, post } = req.body;
-    console.log(token, post);
-    Methods.GetUserSuccessLevel(token)
-        .then((rs) => {
-        if (rs >= user_1.UsersRoles.Editor) {
-            Methods.Insert("posts", Object.assign(Object.assign({}, post), { comments: [] }));
-            res.json({
-                post: "Post added"
-            });
-        }
-        else {
-            res.json(Helpers.CreateError("User have'nt access", 400));
-        }
-        ;
-    })
-        .catch((e) => res.json(e));
+app.post("/InsertNews", (req, res) => {
+    try {
+        const body = req.body;
+        const { token, post } = body;
+        console.log(token, post);
+        Methods.GetUserSuccessLevel(token)
+            .then((rs) => {
+            if (rs >= user_1.UsersRoles.Editor) {
+                Methods.Insert("posts", Object.assign(Object.assign({}, post), { comments: [], confirmed: false }));
+                res.json({
+                    post: "Post added"
+                });
+            }
+            else {
+                res.json(Helpers.CreateError("User have'nt access", 400));
+            }
+            ;
+        })
+            .catch((e) => res.json(e));
+    }
+    catch (e) {
+        console.log(e);
+    }
+    ;
 });
-app.get("/GetPosts", (req, res) => {
+app.get("/GetNews", (req, res) => {
     try {
         const { id } = req.query;
-        console.log(id);
-        Methods.Find("posts", id ? { _id: new mongodb_1.ObjectId(id) } : {})
+        Methods.Find("posts", id ? { _id: new mongodb_1.ObjectId(id.toString()) } : {})
             .then((rs) => {
             console.log("GetPosts", rs);
             res.json(rs);

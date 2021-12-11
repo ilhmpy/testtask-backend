@@ -8,6 +8,7 @@ import { Application } from "express";
 import { SignView, NewsView, SignUpView, NewsState, CommentsView, DeleteNewsView, CommentsState} from "./interfaces/index";
 import { NewsViewModel, UsersRoles } from "./types";
 import { collections } from "./consts/collections";
+import { DatabaseMethods } from "./classes/DatabaseMethods";
 
 const express = require("express");
 const cors = require("cors");
@@ -18,6 +19,7 @@ const toobusy = require("toobusy-js");
 const parser = bodyParser.urlencoded({ extended: true, limit: "1kb"  });
 
 const Helpers = new Help();
+const DB = new DatabaseMethods(connect);
 
 app.use(cors());
 app.use(parser);
@@ -111,7 +113,7 @@ app.post("/InsertNews", (req, res) => {
         Methods.GetUserAccessLevel(token)
             .then((rs) => {
                 if (rs >= UsersRoles.Editor) {
-                    Methods.Insert(collections.news, { ...post, comments: [], confirmed: false });
+                    DB.Insert(collections.news, { ...post, comments: [], confirmed: false });
                     res.json(Helpers.CreateError("News added", 200));
                 } else {
                     res.json(Helpers.CreateError("User have'nt access", 400));
@@ -126,7 +128,7 @@ app.post("/InsertNews", (req, res) => {
 app.get("/GetNews", (req, res) => {
     try {
         const { id } = req.query;
-        Methods.Find(collections.news, id ? { _id: new ObjectId(id.toString()) } : {})
+        DB.Find(collections.news, id ? { _id: new ObjectId(id.toString()) } : {})
             .then((rs) => {
                 console.log("GetPosts", rs);
                 res.json(rs);
@@ -145,7 +147,7 @@ app.post("/ChangeNewsState", (req, res) => {
             .then((level: UsersRoles) => {
                 const _id = new ObjectId(id.toString())
                 if (level === UsersRoles.Admin) {
-                    Methods.Replace(collections.news, { _id }, { confirmed });
+                    DB.Replace(collections.news, { _id }, { confirmed });
                     res.json(Helpers.CreateError("News edited", 200));
                 };
             })
@@ -164,14 +166,14 @@ app.post("/InsertComment", (req, res) => {
         const _id = new ObjectId(newsId);
         console.log("InsertComment", body);
         if (body) {
-            Methods.Find(collections.news, { _id })
+            DB.Find(collections.news, { _id })
                 .then((result: NewsViewModel[]) => {
                     const comments =  [...result[0].comments, {
                         nickname, email, creatorId, text, creationDate,
                         confirmed: false,
                     }];
                     console.log("NewComments", result, comments);
-                    Methods.Replace(collections.news, { _id }, { comments })
+                    DB.Replace(collections.news, { _id }, { comments })
                         .then(() => {
                             res.json(Helpers.CreateError(`Comment add to ${_id} news`, 200));
                         }).catch((er) => {
@@ -194,7 +196,7 @@ app.post("/DeleteNews", (req, res) => {
         .then((level: UsersRoles) => {
             const _id = new ObjectId(id);
             if (level >= UsersRoles.Editor) {
-                Methods.Delete(collections.news, { _id })
+                DB.Delete(collections.news, { _id })
                     .then(() => {
                         res.json(Helpers.CreateError("News deleted", 200));
                     }).catch((err) => {
@@ -217,7 +219,7 @@ app.post("/ChangeCommentState", (req, res) => {
                 .then((level) => {
                     if (level >= UsersRoles.Editor) {
                         const _id = new ObjectId(id);
-                        Methods.Find(collections.news, { _id })
+                        DB.Find(collections.news, { _id })
                             .then((rs: NewsViewModel[]) => {
                                 if (rs.length > 0) {
                                     console.log("ChangeCommentState", rs);
@@ -225,7 +227,7 @@ app.post("/ChangeCommentState", (req, res) => {
                                     const edit = newData.comments[idx];
                                     if (edit) {
                                         edit.confirmed = confirmed;
-                                        Methods.Replace(collections.news, { _id }, newData);
+                                        DB.Replace(collections.news, { _id }, newData);
                                         res.json(newData);
                                     } else {
                                         res.json(Helpers.CreateError("Comment is not defined", 400));

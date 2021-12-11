@@ -13,7 +13,7 @@ export class Methods {
     connect: any;
     constructor(connect: any) {
         this.connect = connect();
-    }
+    };
 
     // обрабатывает и возвращает роль пользователя
 
@@ -23,7 +23,7 @@ export class Methods {
                 if (token) {
                     this.GetAuth(token)
                         .then(async (rs) => {
-                            this.Find(collections.users, { token })
+                            DB.Find(collections.users, { token })
                                 .then((rs: ViewUsersModel[]) => {
                                     res(rs[0].role);
                                 })
@@ -49,7 +49,7 @@ export class Methods {
         return new Promise(async (res, rej) => {
             try {
 
-                this.Find(collections.users, { nickname })
+                DB.Find(collections.users, { nickname })
                     .then(async (result: ViewUsersModel[]) => {
                         if (result.length > 0) {
                             rej(Helpers.CreateError("User already exist", 400));
@@ -57,7 +57,7 @@ export class Methods {
                             const pwd = Helpers.CreatePassword(password);
                             const token = Helpers.CreateToken(nickname);
                             // console.log(token);
-                            this.Insert(collections.users, {
+                            DB.Insert(collections.users, {
                                 password: pwd,
                                 token,
                                 nickname,
@@ -82,13 +82,13 @@ export class Methods {
     public GetAuth = (token: string) => {
         return new Promise(async (res, rej) => {
             try {
-                this.Find(collections.auth, { token })
+                DB.Find(collections.auth, { token })
                     .then(async (result: Auth[]) => {
                         if (result && result.length > 0) {
-                            this.Find(collections.users, { nickname: result[0].nickname })
+                            DB.Find(collections.users, { nickname: result[0].nickname })
                                 .then(async (result: ViewUsersModel[]) => {
                                     if (result[0].blocked) {
-                                        this.Delete(collections.auth, { nickname: result[0].nickname });
+                                        DB.Delete(collections.auth, { nickname: result[0].nickname });
                                         rej(Helpers.CreateError("User is blocked", 400));
                                     };
                                 }).catch((err) => {
@@ -113,31 +113,31 @@ export class Methods {
     public AuthUser = ({ password, nickname }) => {
         return new Promise(async (res, rej) => {
             try {
-                    this.Find(collections.users, { nickname })
+                    DB.Find(collections.users, { nickname })
                         .then((rl: ViewUsersModel[]) => {
                             if (rl.length === 0) {
                                 rej(Helpers.CreateError("User is not defined", 400));
                             };
                             if (rl[0].blocked) {
-                                this.Delete(collections.auth, { nickname });
+                                DB.Delete(collections.auth, { nickname });
                                 rej(Helpers.CreateError("User is blocked", 400));
                             };
                             console.log(password, rl);
                             try {
                                 if (Helpers.IsValidPassword(password, rl[0].password)) {
                                     const token = Helpers.CreateToken(rl[0].nickname);
-                                    this.Find(collections.auth, { nickname })
+                                    DB.Find(collections.auth, { nickname })
                                         .then((result: Auth[]) => {
                                             console.log("FindAuths", result);
                                             if (result.length === 0) {
-                                                this.Insert(collections.auth, { nickname, token });
+                                                DB.Insert(collections.auth, { nickname, token });
                                             } else {
-                                                this.Replace(collections.auth, 
+                                                DB.Replace(collections.auth, 
                                                     { nickname: rl[0].nickname }, { nickname: rl[0].nickname, token })
                                                 .then(() => undefined)
                                                 .catch((err) => rej(err));
                                             };
-                                            this.Replace(collections.users, { nickname: rl[0].nickname }, { ...rl[0], token })
+                                            DB.Replace(collections.users, { nickname: rl[0].nickname }, { ...rl[0], token })
                                                 .then(() => undefined)
                                                 .catch((err) => rej(err));
                                         }).catch((err) => {
@@ -163,7 +163,7 @@ export class Methods {
     public GetUserByToken = (token: string) => {
         return new Promise(async (res, rej) => {
             try {
-                this.Find(collections.users, { token })
+                DB.Find(collections.users, { token })
                     .then((result: ViewUsersModel[]) => {
                         if (result.length > 0) {
                             console.log("GetUserByToken", result);
@@ -177,58 +177,4 @@ export class Methods {
             };
         });
     };
-        // добавляет в бд новый элемент (сделать рефакторинг методов класса в будущем)
-
-        public Insert = async (collection: string, data) => {
-            try {
-                (await this.connect)
-                    .collection(collection)
-                    .insertOne(data);
-            } catch(e) {
-                console.log(e);
-            };
-        };
-        
-        public Find = (collection: string, find) => {
-            return new Promise(async (res, rej) => {
-                try {
-                    (await this.connect)
-                        .collection(collection)
-                        .find(find)
-                        .toArray((err, result) => {
-                            if (err) {
-                                rej(Helpers.CreateError(err, 500));
-                            };
-                            res(result);
-                        });
-                } catch(e) {
-                    rej(Helpers.CreateError(e, 500));
-                };
-            });
-        };
-    
-        public Replace = (collection: string, find, newData) => {
-            return new Promise(async (res, rej) => {
-                try {
-                    this.Find(collection, find)
-                        .then(async (rs: any[]) => {
-                            if (rs.length > 0) {
-                                (await this.connect).collection(collection).replaceOne(find, { ...rs[0], ...newData });
-                                res(rs[0]);
-                            } else {
-                                rej(Helpers.CreateError("Is not defined // Replace ", 400));
-                            };
-                        })
-                        .catch((e) => rej(Helpers.CreateError(e, 500)));
-                } catch(e) {
-                    console.log(e)
-                };
-            });
-        };
-    
-        public Delete = async (collection: string, deleteData) => {
-            (await this.connect)
-                .collection(collection)
-                .deleteOne(deleteData);
-        };
 };

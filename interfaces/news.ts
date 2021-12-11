@@ -10,3 +10,12 @@ export interface NewsState {
     token: string;
     confirmed: boolean;
 };
+
+export interface CommentsView {
+    creatorId: null | number;
+    nickname: string;
+    email: string;
+    text: string;
+    creationDate: Date;
+    newsId: string;
+};

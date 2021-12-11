@@ -5,8 +5,8 @@ import { Helpers as Help } from "./classes/Helpers";
 import { ObjectId } from "mongodb";
 import { Application } from "express";
 
-import { SignView, NewsView, SignUpView, NewsState } from "./interfaces/index";
-import { UsersRoles } from "./types";
+import { SignView, NewsView, SignUpView, NewsState, CommentsView } from "./interfaces/index";
+import { NewsViewModel, UsersRoles } from "./types";
 
 const express = require("express");
 const cors = require("cors");
@@ -45,21 +45,25 @@ app.get('/', (req, res) => {
 app.get("/GetAuth", (req, res) => {
     try {
         const { Token } = req.query;
-        Methods.GetAuth(Token.toString())
-        .then((rs: string) => {
-            Methods.GetUserByToken(Token.toString())
-                .then((rsr) => {
-                    res.json(rsr);
-                })
-                .catch((e) => {
-                    console.log(e);
-                    res.json(e);
+        if (Token != null) {
+            Methods.GetAuth(Token.toString())
+                .then((rs: string) => {
+                    Methods.GetUserByToken(Token.toString())
+                        .then((rsr) => {
+                            res.json(rsr);
+                        })
+                        .catch((e) => {
+                            console.log(e);
+                            res.json(e);
+                        });
+                }) 
+                .catch((err) => {
+                    console.log(err);
+                    res.json(err);
                 });
-        }) 
-        .catch((err) => {
-            console.log(err);
-            res.json(err);
-        });
+        } else {
+            res.json(Helpers.CreateError("Token is undefined", 400));
+        };
     } catch(e) {
         console.log(e);
     }
@@ -93,27 +97,25 @@ app.post("/AuthUser", (req, res) => {
             .catch((e) => {
                 res.json(e);
             });
-       } catch(e) {
-            console.log(e);
-       };
+      } catch(e) {
+        console.log(e);
+      };
 });
 
 app.post("/InsertNews", (req, res) => {
     try {
         const body: NewsView = req.body;
         const { token, post } = body;
-        console.log(token, post);
+        console.log("InsertNews", token, post);
         Methods.GetUserSuccessLevel(token)
-        .then((rs) => {
-            if (rs >= UsersRoles.Editor) {
-                Methods.Insert("posts", { ...post, comments: [], confirmed: false });
-                res.json({
-                  post: "Post added"  
-                });
-            } else {
-                res.json(Helpers.CreateError("User have'nt access", 400));
-            };
-        })
+            .then((rs) => {
+                if (rs >= UsersRoles.Editor) {
+                    Methods.Insert("posts", { ...post, comments: [], confirmed: false });
+                    res.json(Helpers.CreateError("News added", 200));
+                } else {
+                    res.json(Helpers.CreateError("User have'nt access", 400));
+                };
+            })
         .catch((e) => res.json(e)); 
     } catch(e) {
         console.log(e);
@@ -137,15 +139,48 @@ app.post("/ChangeNewsState", (req, res) => {
     try {
         const body: NewsState = req.body;
         const { token, confirmed, id } = body;
+        console.log("ChangeNewsState", body);
         Methods.GetUserSuccessLevel(token)
             .then((level: UsersRoles) => {
+                const _id = new ObjectId(id.toString())
                 if (level === UsersRoles.Admin) {
-                    Methods.Replace("posts", { _id: new ObjectId(id.toString()) }, { confirmed });
+                    Methods.Replace("posts", { _id }, { confirmed });
+                    res.json(Helpers.CreateError("News edited", 200));
                 };
             })
             .catch((e) => {
                 res.json(e);
             });
+    } catch(e) {
+        console.log(e);
+    };
+});
+
+app.post("/InsertComment", (req, res) => {
+    try {
+        const body: CommentsView = req.body;
+        const { newsId, nickname, email, creatorId, text, creationDate } = body;
+        const _id = new ObjectId(newsId);
+        console.log("InsertComment", body);
+        if (body) {
+            Methods.Find("posts", { _id })
+                .then((result: NewsViewModel[]) => {
+                    const comments =  [...result[0].comments, {
+                        nickname, email, creatorId, text, creationDate,
+                        confirmed: false,
+                    }];
+                    console.log("NewComments", result, comments);
+                    Methods.Replace("posts", { _id }, { comments })
+                        .then(() => {
+                            res.json(Helpers.CreateError(`Comment add to ${_id} news`, 200));
+                        }).catch((er) => {
+                            res.json(er);
+                        });
+                }).catch((e) => {
+                    console.log("ErrorInsertNewComment", e);
+                    res.json(e);
+                });
+        };
     } catch(e) {
         console.log(e);
     };

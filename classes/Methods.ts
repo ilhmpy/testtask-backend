@@ -40,20 +40,16 @@ export class Methods {
     public CreateUser = ({ password, nickname, creationDate }: SignUpView) => {
         return new Promise(async (res, rej) => {
             try {
-                (await this.connect)
-                    .collection("users")
-                    .find({ nickname })
-                    .toArray(async (err, result: ViewUsersModel[]) => {
-                        if (err) {
-                            rej(err);
-                        };
+
+                this.Find("users", { nickname })
+                    .then(async (result: ViewUsersModel[]) => {
                         if (result.length > 0) {
                             rej(Helpers.CreateError("User already exist", 400));
                         } else {
                             const pwd = Helpers.CreatePassword(password);
                             const token = Helpers.CreateToken(nickname);
-                            console.log(token);
-                            (await this.connect).collection("users").insertOne({
+                            // console.log(token);
+                            this.Insert("users", {
                                 password: pwd,
                                 token,
                                 nickname,
@@ -64,6 +60,8 @@ export class Methods {
                             });
                             res(Helpers.CreateError("User created", 200));
                         };
+                    }).catch((e) => {
+                        rej(Helpers.CreateError(e, 400));
                     });
             } catch (e) {
                 rej(Helpers.CreateError(e, 500));
@@ -83,18 +81,18 @@ export class Methods {
                         if (err) {
                             rej(Helpers.CreateError(err, 500));
                         };
-                        console.log(result);
-                        (await this.connect).collection("users").find({ nickname: result[0].nickname }).toArray(
-                            async (err, result: ViewUsersModel) => {
-                                if (err) {
-                                    rej(Helpers.CreateError(err, 500));
-                                };
-                                if (result[0].blocked) {
-                                    rej(Helpers.CreateError("User is blocked", 400));
-                                    (await this.connect).collection("auth")
-                                        .deleteOne({ nickname: result[0].nickname });
-                                };
-                        });
+                        if (result && result.length > 0) {
+                            this.Find("users", { nickname: result[0].nickname })
+                                .then(async (result: ViewUsersModel[]) => {
+                                    if (result[0].blocked) {
+                                        rej(Helpers.CreateError("User is blocked", 400));
+                                        (await this.connect).collection("auth")
+                                            .deleteOne({ nickname: result[0].nickname });
+                                    };
+                                }).catch((err) => {
+                                    rej(Helpers.CreateError(err, 404));
+                                });
+                        }
                         if (result.length > 0) {
                             res([]);
                         };
@@ -188,15 +186,13 @@ export class Methods {
     public Insert = async (collection: string, data) => {
         try {
             (await this.connect)
-            .collection(collection)
-            .insertOne(data);
+                .collection(collection)
+                .insertOne(data);
         } catch(e) {
             console.log(e);
         };
     };
-
-    // аналогично 
-
+    
     public Find = (collection: string, find) => {
         return new Promise(async (res, rej) => {
             try {
@@ -205,12 +201,12 @@ export class Methods {
                     .find(find)
                     .toArray((err, result) => {
                         if (err) {
-                            rej(err);
+                            rej(Helpers.CreateError(err, 500));
                         };
                         res(result);
                     });
             } catch(e) {
-                console.log(e);
+                rej(Helpers.CreateError(e, 500));
             };
         });
     };
@@ -221,8 +217,8 @@ export class Methods {
                 this.Find(collection, find)
                     .then(async (rs: any[]) => {
                         if (rs.length > 0) {
-                            (await this.connect).collection(collection).replaceOne(find, { ...rs[0], newData });
-                            res(true);
+                            (await this.connect).collection(collection).replaceOne(find, { ...rs[0], ...newData });
+                            res(rs[0]);
                         } else {
                             rej(Helpers.CreateError("Is not defined // Replace ", 400));
                         };

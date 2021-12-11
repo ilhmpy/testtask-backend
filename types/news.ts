@@ -12,6 +12,6 @@ export type NewsCommentModel = {
     nickname: string;
     text: string;
     confirmed: boolean;
-    creatorId: number;
+    creatorId: number | null;
     creationDate: Date;
 };

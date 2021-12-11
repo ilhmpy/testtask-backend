@@ -15,6 +15,7 @@ const user_1 = require("../types/user");
 const Helpers = new Helpers_1.Helpers();
 class Methods {
     constructor(connect) {
+        // обрабатывает и возвращает роль пользователя
         this.GetUserSuccessLevel = (token) => {
             return new Promise((res, rej) => __awaiter(this, void 0, void 0, function* () {
                 try {
@@ -38,25 +39,20 @@ class Methods {
                 ;
             }));
         };
+        // создает пользователя
         this.CreateUser = ({ password, nickname, creationDate }) => {
             return new Promise((res, rej) => __awaiter(this, void 0, void 0, function* () {
                 try {
-                    (yield this.connect)
-                        .collection("users")
-                        .find({ nickname })
-                        .toArray((err, result) => __awaiter(this, void 0, void 0, function* () {
-                        if (err) {
-                            rej(err);
-                        }
-                        ;
+                    this.Find("users", { nickname })
+                        .then((result) => __awaiter(this, void 0, void 0, function* () {
                         if (result.length > 0) {
                             rej(Helpers.CreateError("User already exist", 400));
                         }
                         else {
                             const pwd = Helpers.CreatePassword(password);
                             const token = Helpers.CreateToken(nickname);
-                            console.log(token);
-                            (yield this.connect).collection("users").insertOne({
+                            // console.log(token);
+                            this.Insert("users", {
                                 password: pwd,
                                 token,
                                 nickname,
@@ -68,13 +64,16 @@ class Methods {
                             res(Helpers.CreateError("User created", 200));
                         }
                         ;
-                    }));
+                    })).catch((e) => {
+                        rej(Helpers.CreateError(e, 400));
+                    });
                 }
                 catch (e) {
                     rej(Helpers.CreateError(e, 500));
                 }
             }));
         };
+        // проверяет авторизацию и возвращает пользователя если тот авторизован и не заблокирован
         this.GetAuth = (token) => {
             return new Promise((res, rej) => __awaiter(this, void 0, void 0, function* () {
                 try {
@@ -86,19 +85,19 @@ class Methods {
                             rej(Helpers.CreateError(err, 500));
                         }
                         ;
-                        console.log(result);
-                        (yield this.connect).collection("users").find({ nickname: result[0].nickname }).toArray((err, result) => __awaiter(this, void 0, void 0, function* () {
-                            if (err) {
-                                rej(Helpers.CreateError(err, 500));
-                            }
-                            ;
-                            if (result[0].blocked) {
-                                rej(Helpers.CreateError("User is blocked", 400));
-                                (yield this.connect).collection("auth")
-                                    .deleteOne({ nickname: result[0].nickname });
-                            }
-                            ;
-                        }));
+                        if (result && result.length > 0) {
+                            this.Find("users", { nickname: result[0].nickname })
+                                .then((result) => __awaiter(this, void 0, void 0, function* () {
+                                if (result[0].blocked) {
+                                    rej(Helpers.CreateError("User is blocked", 400));
+                                    (yield this.connect).collection("auth")
+                                        .deleteOne({ nickname: result[0].nickname });
+                                }
+                                ;
+                            })).catch((err) => {
+                                rej(Helpers.CreateError(err, 404));
+                            });
+                        }
                         if (result.length > 0) {
                             res([]);
                         }
@@ -112,6 +111,7 @@ class Methods {
                 ;
             }));
         };
+        // авторизует пользователя, проверяет его наличие и добавляет новый токен обновляя сущность в коллекции пользователей
         this.AuthUser = ({ password, nickname }) => {
             return new Promise((res, rej) => __awaiter(this, void 0, void 0, function* () {
                 try {
@@ -172,6 +172,7 @@ class Methods {
                 ;
             }));
         };
+        // возвращает пользователя по token'у перед этим действием нужно проверить уровень доступа отправлявшего с помощью GetUserLevelSuccess
         this.GetUserByToken = (token) => {
             return new Promise((res, rej) => __awaiter(this, void 0, void 0, function* () {
                 try {
@@ -198,6 +199,7 @@ class Methods {
                 ;
             }));
         };
+        // добавляет в бд новый элемент (сделать рефакторинг методов класса в будущем)
         this.Insert = (collection, data) => __awaiter(this, void 0, void 0, function* () {
             try {
                 (yield this.connect)
@@ -217,11 +219,33 @@ class Methods {
                         .find(find)
                         .toArray((err, result) => {
                         if (err) {
-                            rej(err);
+                            rej(Helpers.CreateError(err, 500));
                         }
                         ;
                         res(result);
                     });
+                }
+                catch (e) {
+                    rej(Helpers.CreateError(e, 500));
+                }
+                ;
+            }));
+        };
+        this.Replace = (collection, find, newData) => {
+            return new Promise((res, rej) => __awaiter(this, void 0, void 0, function* () {
+                try {
+                    this.Find(collection, find)
+                        .then((rs) => __awaiter(this, void 0, void 0, function* () {
+                        if (rs.length > 0) {
+                            (yield this.connect).collection(collection).replaceOne(find, Object.assign(Object.assign({}, rs[0]), newData));
+                            res(rs[0]);
+                        }
+                        else {
+                            rej(Helpers.CreateError("Is not defined // Replace ", 400));
+                        }
+                        ;
+                    }))
+                        .catch((e) => rej(Helpers.CreateError(e, 500)));
                 }
                 catch (e) {
                     console.log(e);

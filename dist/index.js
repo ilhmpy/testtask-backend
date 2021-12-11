@@ -3,9 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const port_1 = require("./consts/port");
 const Methods_1 = require("./classes/Methods");
 const db_1 = require("./db");
-const user_1 = require("./types/user");
 const Helpers_1 = require("./classes/Helpers");
 const mongodb_1 = require("mongodb");
+const types_1 = require("./types");
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
@@ -38,21 +38,27 @@ app.get('/', (req, res) => {
 app.get("/GetAuth", (req, res) => {
     try {
         const { Token } = req.query;
-        Methods.GetAuth(Token.toString())
-            .then((rs) => {
-            Methods.GetUserByToken(Token.toString())
-                .then((rsr) => {
-                res.json(rsr);
+        if (Token != null) {
+            Methods.GetAuth(Token.toString())
+                .then((rs) => {
+                Methods.GetUserByToken(Token.toString())
+                    .then((rsr) => {
+                    res.json(rsr);
+                })
+                    .catch((e) => {
+                    console.log(e);
+                    res.json(e);
+                });
             })
-                .catch((e) => {
-                console.log(e);
-                res.json(e);
+                .catch((err) => {
+                console.log(err);
+                res.json(err);
             });
-        })
-            .catch((err) => {
-            console.log(err);
-            res.json(err);
-        });
+        }
+        else {
+            res.json(Helpers.CreateError("Token is undefined", 400));
+        }
+        ;
     }
     catch (e) {
         console.log(e);
@@ -97,14 +103,12 @@ app.post("/InsertNews", (req, res) => {
     try {
         const body = req.body;
         const { token, post } = body;
-        console.log(token, post);
+        console.log("InsertNews", token, post);
         Methods.GetUserSuccessLevel(token)
             .then((rs) => {
-            if (rs >= user_1.UsersRoles.Editor) {
+            if (rs >= types_1.UsersRoles.Editor) {
                 Methods.Insert("posts", Object.assign(Object.assign({}, post), { comments: [], confirmed: false }));
-                res.json({
-                    post: "Post added"
-                });
+                res.json(Helpers.CreateError("News added", 200));
             }
             else {
                 res.json(Helpers.CreateError("User have'nt access", 400));
@@ -126,6 +130,61 @@ app.get("/GetNews", (req, res) => {
             console.log("GetPosts", rs);
             res.json(rs);
         }).catch((err) => console.log(err));
+    }
+    catch (e) {
+        console.log(e);
+    }
+    ;
+});
+app.post("/ChangeNewsState", (req, res) => {
+    try {
+        const body = req.body;
+        const { token, confirmed, id } = body;
+        console.log("ChangeNewsState", body);
+        Methods.GetUserSuccessLevel(token)
+            .then((level) => {
+            const _id = new mongodb_1.ObjectId(id.toString());
+            if (level === types_1.UsersRoles.Admin) {
+                Methods.Replace("posts", { _id }, { confirmed });
+                res.json(Helpers.CreateError("News edited", 200));
+            }
+            ;
+        })
+            .catch((e) => {
+            res.json(e);
+        });
+    }
+    catch (e) {
+        console.log(e);
+    }
+    ;
+});
+app.post("/InsertComment", (req, res) => {
+    try {
+        const body = req.body;
+        const { newsId, nickname, email, creatorId, text, creationDate } = body;
+        const _id = new mongodb_1.ObjectId(newsId);
+        console.log("InsertComment", body);
+        if (body) {
+            Methods.Find("posts", { _id })
+                .then((result) => {
+                const comments = [...result[0].comments, {
+                        nickname, email, creatorId, text, creationDate,
+                        confirmed: false,
+                    }];
+                console.log("NewComments", result, comments);
+                Methods.Replace("posts", { _id }, { comments })
+                    .then(() => {
+                    res.json(Helpers.CreateError(`Comment add to ${_id} news`, 200));
+                }).catch((er) => {
+                    res.json(er);
+                });
+            }).catch((e) => {
+                console.log("ErrorInsertNewComment", e);
+                res.json(e);
+            });
+        }
+        ;
     }
     catch (e) {
         console.log(e);

@@ -278,7 +278,7 @@ app.get("/GetEditors", (req, res) => {
                     .then((result) => {
                     res.json(result.map(({ nickname, creationDate, confirmed, blocked, role, _id }) => {
                         return ({ nickname, creationDate, confirmed, blocked, role, _id });
-                    }).filter((i) => i.token !== token));
+                    }));
                 }).catch((err) => res.json(Helpers.CreateError(err, 500)));
             }
             else {
@@ -312,12 +312,12 @@ app.post("/ChangeEditorBlocked", (req, res) => {
 });
 app.post("/ChangeEditorConfirmed", (req, res) => {
     const { bool, token, id } = req.body;
-    console.log("ChangeEditor/Confirmed", req.body);
+    console.log(`${Math.random() * 100}ChangeEditor/Confirmed`, req.body);
     Methods.GetUserAccessLevel(token.toString())
         .then((level) => {
         if (level === types_1.UsersRoles.Admin) {
             const _id = new mongodb_1.ObjectId(id);
-            DB.Replace(collections_1.collections.users, { _id }, { confirmed: bool })
+            DB.Replace(collections_1.collections.users, { _id }, bool ? { role: types_1.UsersRoles.Editor, confirmed: bool } : { role: types_1.UsersRoles.User, confirmed: bool })
                 .then(() => res.json(Helpers.CreateError("User edited", 200)))
                 .catch((err) => res.json(err));
         }

@@ -266,7 +266,7 @@ app.get("/GetEditors", (req, res) => {
                                 result.map(
                                     ({ nickname, creationDate, confirmed, blocked, role, _id }) => {
                                         return ({ nickname, creationDate, confirmed, blocked, role, _id })
-                                    }).filter((i: ViewUsersModel) => i.token !== token));
+                                    }));
                         }).catch((err) => res.json(Helpers.CreateError(err, 500)));
                 } else {
                     res.json(Helpers.CreateError("User haven't success", 400));
@@ -297,12 +297,13 @@ app.post("/ChangeEditorBlocked", (req, res) => {
 
 app.post("/ChangeEditorConfirmed", (req, res) => {
     const { bool, token, id } = req.body;
-    console.log("ChangeEditor/Confirmed", req.body);
+    console.log(`${Math.random() * 100}ChangeEditor/Confirmed`, req.body);
     Methods.GetUserAccessLevel(token.toString())
         .then((level) => {
             if (level === UsersRoles.Admin) {
                 const _id = new ObjectId(id);
-                DB.Replace(collections.users, { _id }, { confirmed: bool })
+                DB.Replace(collections.users, { _id }, 
+                    bool ? { role: UsersRoles.Editor, confirmed: bool } : { role: UsersRoles.User, confirmed: bool })
                     .then(() => res.json(Helpers.CreateError("User edited", 200)))
                     .catch((err) => res.json(err));
             } else {

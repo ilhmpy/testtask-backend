@@ -330,5 +330,14 @@ app.post("/ChangeEditorConfirmed", (req, res) => {
         res.json(err);
     });
 });
+app.post("/UnAuth", (req, res) => {
+    const { token } = req.body;
+    DB.Delete("auth", { token })
+        .then(() => {
+        res.json(Helpers.CreateError("User is logout", 200));
+    }).catch(() => {
+        res.json(Helpers.CreateError("User is not logount", 400));
+    });
+});
 app.listen(port_1.PORT, () => console.log(`Server started http://localhost:${port_1.PORT}`));
 //# sourceMappingURL=index.js.map

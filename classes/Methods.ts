@@ -118,13 +118,18 @@ export class Methods {
                             if (rl.length === 0) {
                                 rej(Helpers.CreateError("User is not defined", 400));
                             };
-                            if (rl[0].blocked) {
-                                DB.Delete(collections.auth, { nickname });
-                                rej(Helpers.CreateError("User is blocked", 400));
-                            };
+                            console.log("RlBlocked", rl[0], rl[0].blocked);
                             console.log(password, rl);
                             try {
-                                if (Helpers.IsValidPassword(password, rl[0].password)) {
+                                if (rl[0].blocked) {
+                                    DB.Delete(collections.auth, { nickname })
+                                        .then((rs) => {
+                                            console.log(rs);
+                                        }).catch((err) => {
+                                            console.log(err);
+                                        });
+                                    rej(Helpers.CreateError("User is blocked", 400));
+                                } else if ((Helpers.IsValidPassword(password, rl[0].password)) && !rl[0].blocked) {
                                     const token = Helpers.CreateToken(rl[0].nickname);
                                     DB.Find(collections.auth, { nickname })
                                         .then((result: Auth[]) => {

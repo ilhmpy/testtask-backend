@@ -9,13 +9,17 @@ export class DatabaseMethods {
     };
 
     public Insert = async (collection: string, data) => {
-        try {
-            (await this.connect)
-                .collection(collection)
-                .insertOne(data);
-        } catch(e) {
-            console.log(e);
-        };
+        return new Promise(async (res, rej) => {
+            try {
+                (await this.connect)
+                    .collection(collection)
+                    .insertOne(data)
+                        .then((rs) => res(rs))
+                        .catch((err) => rej(err));
+            } catch(e) {
+                rej(e);
+            };
+        });
     };
     
     public Find = (collection: string, find) => {
@@ -56,8 +60,16 @@ export class DatabaseMethods {
     };
 
     public Delete = async (collection: string, deleteData) => {
-        (await this.connect)
-            .collection(collection)
-            .deleteOne(deleteData);
+        return new Promise (async (res, rej) => {
+            try {
+                (await this.connect)
+                    .collection(collection)
+                    .deleteOne(deleteData)
+                        .then((rs) => res(rs))
+                        .catch((err) => rej(err));
+            } catch(e) {
+                rej(e);
+            };
+        });
     };
 };

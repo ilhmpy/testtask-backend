@@ -15,15 +15,19 @@ const Helpers = new Helpers_1.Helpers();
 class DatabaseMethods {
     constructor(connect) {
         this.Insert = (collection, data) => __awaiter(this, void 0, void 0, function* () {
-            try {
-                (yield this.connect)
-                    .collection(collection)
-                    .insertOne(data);
-            }
-            catch (e) {
-                console.log(e);
-            }
-            ;
+            return new Promise((res, rej) => __awaiter(this, void 0, void 0, function* () {
+                try {
+                    (yield this.connect)
+                        .collection(collection)
+                        .insertOne(data)
+                        .then((rs) => res(rs))
+                        .catch((err) => rej(err));
+                }
+                catch (e) {
+                    rej(e);
+                }
+                ;
+            }));
         });
         this.Find = (collection, find) => {
             return new Promise((res, rej) => __awaiter(this, void 0, void 0, function* () {
@@ -68,9 +72,19 @@ class DatabaseMethods {
             }));
         };
         this.Delete = (collection, deleteData) => __awaiter(this, void 0, void 0, function* () {
-            (yield this.connect)
-                .collection(collection)
-                .deleteOne(deleteData);
+            return new Promise((res, rej) => __awaiter(this, void 0, void 0, function* () {
+                try {
+                    (yield this.connect)
+                        .collection(collection)
+                        .deleteOne(deleteData)
+                        .then((rs) => res(rs))
+                        .catch((err) => rej(err));
+                }
+                catch (e) {
+                    rej(e);
+                }
+                ;
+            }));
         });
         this.connect = connect();
     }

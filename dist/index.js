@@ -94,6 +94,7 @@ app.post("/AuthUser", (req, res) => {
             res.json({ token });
         })
             .catch((e) => {
+            console.log("ERRORRRR", e);
             res.json(e);
         });
     }

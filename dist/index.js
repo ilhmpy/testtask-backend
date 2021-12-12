@@ -332,7 +332,7 @@ app.post("/ChangeEditorConfirmed", (req, res) => {
 });
 app.post("/UnAuth", (req, res) => {
     const { token } = req.body;
-    DB.Delete("auth", { token })
+    DB.Delete(collections_1.collections.auth, { token })
         .then(() => {
         res.json(Helpers.CreateError("User is logout", 200));
     }).catch(() => {

@@ -82,20 +82,20 @@ export class Methods {
     public GetAuth = (token: string) => {
         return new Promise(async (res, rej) => {
             try {
-                DB.Find(collections.auth, { token })
-                    .then(async (result: Auth[]) => {
-                        if (result && result.length > 0) {
-                            DB.Find(collections.users, { nickname: result[0].nickname })
-                                .then(async (result: ViewUsersModel[]) => {
-                                    if (result[0].blocked) {
-                                        DB.Delete(collections.auth, { nickname: result[0].nickname });
+                DB.FindOne(collections.auth, { token })
+                    .then(async (result: Auth) => {
+                        if (result != null) {
+                            DB.FindOne(collections.users, { nickname: result.nickname })
+                                .then(async (result: ViewUsersModel) => {
+                                    if (result.blocked) {
+                                        DB.Delete(collections.auth, { nickname: result.nickname });
                                         rej(Helpers.CreateError("User is blocked", 400));
                                     };
                                 }).catch((err) => {
                                     rej(Helpers.CreateError(err, 404));
                                 });
-                        }
-                        if (result.length > 0) {
+                        };
+                        if (result != null) {
                             res([]);
                         };
                         rej(Helpers.CreateError("User is not auth", 401));
@@ -113,15 +113,15 @@ export class Methods {
     public AuthUser = ({ password, nickname }) => {
         return new Promise(async (res, rej) => {
             try {
-                    DB.Find(collections.users, { nickname })
-                        .then((rl: ViewUsersModel[]) => {
-                            if (rl.length === 0) {
+                    DB.FindOne(collections.users, { nickname })
+                        .then((rl: ViewUsersModel) => {
+                            if (rl == null) {
                                 rej(Helpers.CreateError("User is not defined", 400));
                             };
-                            console.log("RlBlocked", rl[0], rl[0].blocked);
+                            console.log("RlBlocked", rl, rl.blocked);
                             console.log(password, rl);
                             try {
-                                if (rl[0].blocked) {
+                                if (rl.blocked) {
                                     DB.Delete(collections.auth, { nickname })
                                         .then((rs) => {
                                             console.log(rs);
@@ -129,20 +129,20 @@ export class Methods {
                                             console.log(err);
                                         });
                                     rej(Helpers.CreateError("User is blocked", 400));
-                                } else if ((Helpers.IsValidPassword(password, rl[0].password)) && !rl[0].blocked) {
-                                    const token = Helpers.CreateToken(rl[0].nickname);
-                                    DB.Find(collections.auth, { nickname })
-                                        .then((result: Auth[]) => {
+                                } else if ((Helpers.IsValidPassword(password, rl.password)) && !rl.blocked) {
+                                    const token = Helpers.CreateToken(rl.nickname);
+                                    DB.FindOne(collections.auth, { nickname })
+                                        .then((result: Auth) => {
                                             console.log("FindAuths", result);
-                                            if (result.length === 0) {
+                                            if (result === null) {
                                                 DB.Insert(collections.auth, { nickname, token });
                                             } else {
                                                 DB.Replace(collections.auth, 
-                                                    { nickname: rl[0].nickname }, { nickname: rl[0].nickname, token })
+                                                    { nickname: rl.nickname }, { nickname: rl.nickname, token })
                                                 .then(() => undefined)
                                                 .catch((err) => rej(err));
                                             };
-                                            DB.Replace(collections.users, { nickname: rl[0].nickname }, { ...rl[0], token })
+                                            DB.Replace(collections.users, { nickname: rl.nickname }, { ...rl, token })
                                                 .then(() => undefined)
                                                 .catch((err) => rej(err));
                                         }).catch((err) => {
@@ -168,11 +168,11 @@ export class Methods {
     public GetUserByToken = (token: string) => {
         return new Promise(async (res, rej) => {
             try {
-                DB.Find(collections.users, { token })
-                    .then((result: ViewUsersModel[]) => {
-                        if (result.length > 0) {
+                DB.FindOne(collections.users, { token })
+                    .then((result: ViewUsersModel) => {
+                        if (result) {
                             console.log("GetUserByToken", result);
-                            const { nickname, blocked, confirmed, creationDate, role, _id } = result[0];
+                            const { nickname, blocked, confirmed, creationDate, role, _id } = result;
                             res({ nickname, blocked, confirmed, creationDate, role, id: _id });
                         };
                         rej(Helpers.CreateError("User is not defined", 400));

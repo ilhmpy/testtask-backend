@@ -49,6 +49,26 @@ class DatabaseMethods {
                 ;
             }));
         };
+        this.FindOne = (collection, find) => {
+            return new Promise((res, rej) => __awaiter(this, void 0, void 0, function* () {
+                try {
+                    (yield this.connect)
+                        .collection(collection)
+                        .findOne(find, (err, result) => {
+                        console.log(result);
+                        if (err) {
+                            rej(Helpers.CreateError(err, 500));
+                        }
+                        ;
+                        res(result);
+                    });
+                }
+                catch (e) {
+                    rej(Helpers.CreateError(e, 500));
+                }
+                ;
+            }));
+        };
         this.Replace = (collection, find, newData) => {
             return new Promise((res, rej) => __awaiter(this, void 0, void 0, function* () {
                 try {

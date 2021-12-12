@@ -86,13 +86,13 @@ class Methods {
         this.GetAuth = (token) => {
             return new Promise((res, rej) => __awaiter(this, void 0, void 0, function* () {
                 try {
-                    DB.Find(collections_1.collections.auth, { token })
+                    DB.FindOne(collections_1.collections.auth, { token })
                         .then((result) => __awaiter(this, void 0, void 0, function* () {
-                        if (result && result.length > 0) {
-                            DB.Find(collections_1.collections.users, { nickname: result[0].nickname })
+                        if (result != null) {
+                            DB.FindOne(collections_1.collections.users, { nickname: result.nickname })
                                 .then((result) => __awaiter(this, void 0, void 0, function* () {
-                                if (result[0].blocked) {
-                                    DB.Delete(collections_1.collections.auth, { nickname: result[0].nickname });
+                                if (result.blocked) {
+                                    DB.Delete(collections_1.collections.auth, { nickname: result.nickname });
                                     rej(Helpers.CreateError("User is blocked", 400));
                                 }
                                 ;
@@ -100,7 +100,8 @@ class Methods {
                                 rej(Helpers.CreateError(err, 404));
                             });
                         }
-                        if (result.length > 0) {
+                        ;
+                        if (result != null) {
                             res([]);
                         }
                         ;
@@ -119,16 +120,16 @@ class Methods {
         this.AuthUser = ({ password, nickname }) => {
             return new Promise((res, rej) => __awaiter(this, void 0, void 0, function* () {
                 try {
-                    DB.Find(collections_1.collections.users, { nickname })
+                    DB.FindOne(collections_1.collections.users, { nickname })
                         .then((rl) => {
-                        if (rl.length === 0) {
+                        if (rl == null) {
                             rej(Helpers.CreateError("User is not defined", 400));
                         }
                         ;
-                        console.log("RlBlocked", rl[0], rl[0].blocked);
+                        console.log("RlBlocked", rl, rl.blocked);
                         console.log(password, rl);
                         try {
-                            if (rl[0].blocked) {
+                            if (rl.blocked) {
                                 DB.Delete(collections_1.collections.auth, { nickname })
                                     .then((rs) => {
                                     console.log(rs);
@@ -137,21 +138,21 @@ class Methods {
                                 });
                                 rej(Helpers.CreateError("User is blocked", 400));
                             }
-                            else if ((Helpers.IsValidPassword(password, rl[0].password)) && !rl[0].blocked) {
-                                const token = Helpers.CreateToken(rl[0].nickname);
-                                DB.Find(collections_1.collections.auth, { nickname })
+                            else if ((Helpers.IsValidPassword(password, rl.password)) && !rl.blocked) {
+                                const token = Helpers.CreateToken(rl.nickname);
+                                DB.FindOne(collections_1.collections.auth, { nickname })
                                     .then((result) => {
                                     console.log("FindAuths", result);
-                                    if (result.length === 0) {
+                                    if (result === null) {
                                         DB.Insert(collections_1.collections.auth, { nickname, token });
                                     }
                                     else {
-                                        DB.Replace(collections_1.collections.auth, { nickname: rl[0].nickname }, { nickname: rl[0].nickname, token })
+                                        DB.Replace(collections_1.collections.auth, { nickname: rl.nickname }, { nickname: rl.nickname, token })
                                             .then(() => undefined)
                                             .catch((err) => rej(err));
                                     }
                                     ;
-                                    DB.Replace(collections_1.collections.users, { nickname: rl[0].nickname }, Object.assign(Object.assign({}, rl[0]), { token }))
+                                    DB.Replace(collections_1.collections.users, { nickname: rl.nickname }, Object.assign(Object.assign({}, rl), { token }))
                                         .then(() => undefined)
                                         .catch((err) => rej(err));
                                 }).catch((err) => {
@@ -180,11 +181,11 @@ class Methods {
         this.GetUserByToken = (token) => {
             return new Promise((res, rej) => __awaiter(this, void 0, void 0, function* () {
                 try {
-                    DB.Find(collections_1.collections.users, { token })
+                    DB.FindOne(collections_1.collections.users, { token })
                         .then((result) => {
-                        if (result.length > 0) {
+                        if (result) {
                             console.log("GetUserByToken", result);
-                            const { nickname, blocked, confirmed, creationDate, role, _id } = result[0];
+                            const { nickname, blocked, confirmed, creationDate, role, _id } = result;
                             res({ nickname, blocked, confirmed, creationDate, role, id: _id });
                         }
                         ;

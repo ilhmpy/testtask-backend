@@ -40,6 +40,24 @@ export class DatabaseMethods {
         });
     };
 
+    public FindOne = (collection: string, find) => {
+        return new Promise(async (res, rej) => {
+            try {
+                (await this.connect)
+                    .collection(collection)
+                    .findOne(find, (err, result) => {
+                        console.log(result);
+                        if (err) {
+                            rej(Helpers.CreateError(err, 500));
+                        };
+                        res(result);
+                    });
+            } catch(e) {
+                rej(Helpers.CreateError(e, 500));
+            };
+        });
+    };
+
     public Replace = (collection: string, find, newData) => {
         return new Promise(async (res, rej) => {
             try {

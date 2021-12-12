@@ -46,6 +46,7 @@ app.get("/GetAuth", (req, res) => {
                 .then((rs) => {
                 Methods.GetUserByToken(Token.toString())
                     .then((rsr) => {
+                    console.log("RSR", rsr);
                     res.json(rsr);
                 })
                     .catch((e) => {

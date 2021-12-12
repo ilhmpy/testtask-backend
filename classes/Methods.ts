@@ -84,6 +84,7 @@ export class Methods {
             try {
                 DB.Find(collections.auth, { token })
                     .then(async (result: Auth[]) => {
+                        console.log("GETAUTH", result);
                         if (result && result.length > 0) {
                             DB.Find(collections.users, { nickname: result[0].nickname })
                                 .then(async (result: ViewUsersModel[]) => {

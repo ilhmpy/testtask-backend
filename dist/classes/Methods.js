@@ -88,6 +88,7 @@ class Methods {
                 try {
                     DB.Find(collections_1.collections.auth, { token })
                         .then((result) => __awaiter(this, void 0, void 0, function* () {
+                        console.log("GETAUTH", result);
                         if (result && result.length > 0) {
                             DB.Find(collections_1.collections.users, { nickname: result[0].nickname })
                                 .then((result) => __awaiter(this, void 0, void 0, function* () {

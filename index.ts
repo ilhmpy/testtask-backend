@@ -5,7 +5,7 @@ import { Helpers as Help } from "./classes/Helpers";
 import { ObjectId } from "mongodb";
 import { Application } from "express";
 
-import { SignView, NewsView, SignUpView, NewsState, CommentsView, DeleteNewsView, CommentsState} from "./interfaces/index";
+import { SignView, NewsView, SignUpView, NewsState, CommentsView, DeleteNewsView, CommentsState } from "./interfaces";
 import { NewsViewModel, UsersRoles } from "./types";
 import { collections } from "./consts/collections";
 import { DatabaseMethods } from "./classes/DatabaseMethods";

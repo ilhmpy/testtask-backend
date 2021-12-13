@@ -15,7 +15,14 @@ const user_1 = require("./securityConfig/user");
 const db = "TestTask-db";
 const url = `mongodb+srv://${user_1.User.name}:${user_1.User.password}@cluster0.15eqf.mongodb.net/${db}?retryWrites=true&w=majority`;
 const connect = () => __awaiter(void 0, void 0, void 0, function* () {
-    const client = yield mongodb_1.MongoClient.connect(url);
+    let client;
+    try {
+        client = yield mongodb_1.MongoClient.connect(url);
+    }
+    catch (e) {
+        console.log(e);
+    }
+    ;
     return client.db(db);
 });
 exports.connect = connect;

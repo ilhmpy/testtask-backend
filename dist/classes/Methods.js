@@ -39,7 +39,7 @@ class Methods {
                         });
                     }
                     else {
-                        rej(Helpers.CreateError("Token is undefined", 400));
+                        rej(Helpers.CreateError("GetUserAccessError: Token is undefined", 400));
                     }
                 }
                 catch (e) {
@@ -55,7 +55,7 @@ class Methods {
                     DB.Find(collections_1.collections.users, { nickname })
                         .then((result) => __awaiter(this, void 0, void 0, function* () {
                         if (result.length > 0) {
-                            rej(Helpers.CreateError("User already exist", 400));
+                            rej(Helpers.CreateError("CreateUserError: User already exist", 400));
                         }
                         else {
                             const pwd = Helpers.CreatePassword(password);
@@ -88,13 +88,14 @@ class Methods {
                 try {
                     DB.Find(collections_1.collections.auth, { token })
                         .then((result) => __awaiter(this, void 0, void 0, function* () {
+                        console.log("GETAUTH-TOKEN", token);
                         console.log("GETAUTH", result);
                         if (result && result.length > 0) {
                             DB.Find(collections_1.collections.users, { nickname: result[0].nickname })
                                 .then((result) => __awaiter(this, void 0, void 0, function* () {
                                 if (result[0].blocked) {
                                     DB.Delete(collections_1.collections.auth, { nickname: result[0].nickname });
-                                    rej(Helpers.CreateError("User is blocked", 400));
+                                    rej(Helpers.CreateError("GetAuthBlockedError: User is blocked", 400));
                                 }
                                 ;
                             })).catch((err) => {
@@ -105,7 +106,7 @@ class Methods {
                             res([]);
                         }
                         ;
-                        rej(Helpers.CreateError("User is not auth", 401));
+                        rej(Helpers.CreateError("GetAuthError: User is not auth", 401));
                     })).catch((err) => {
                         rej(err);
                     });
@@ -123,7 +124,7 @@ class Methods {
                     DB.Find(collections_1.collections.users, { nickname })
                         .then((rl) => {
                         if (rl.length === 0) {
-                            rej(Helpers.CreateError("User is not defined", 400));
+                            rej(Helpers.CreateError("AuthUserError: User is not defined", 400));
                         }
                         ;
                         console.log("RlBlocked", rl[0], rl[0].blocked);
@@ -136,7 +137,7 @@ class Methods {
                                 }).catch((err) => {
                                     console.log(err);
                                 });
-                                rej(Helpers.CreateError("User is blocked", 400));
+                                rej(Helpers.CreateError("AuthUserBlockedError: User is blocked", 400));
                             }
                             else if ((Helpers.IsValidPassword(password, rl[0].password)) && !rl[0].blocked) {
                                 const token = Helpers.CreateToken(rl[0].nickname);
@@ -166,7 +167,7 @@ class Methods {
                             console.log(e, rl[0].password);
                         }
                         ;
-                        rej(Helpers.CreateError("Password is not valid", 400));
+                        rej(Helpers.CreateError("AuthUserError: Password is not valid", 400));
                     }).catch((err) => {
                         rej(err);
                     });
@@ -189,7 +190,7 @@ class Methods {
                             res({ nickname, blocked, confirmed, creationDate, role, id: _id });
                         }
                         ;
-                        rej(Helpers.CreateError("User is not defined", 400));
+                        rej(Helpers.CreateError("GetUserByTokenError: User is not defined", 400));
                     }).catch(err => res(err));
                 }
                 catch (e) {

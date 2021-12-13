@@ -23,7 +23,10 @@ const connect = () => __awaiter(void 0, void 0, void 0, function* () {
         console.log(e);
     }
     ;
-    return client.db(db);
+    if (client) {
+        return client.db(db);
+    }
+    ;
 });
 exports.connect = connect;
 //# sourceMappingURL=db.js.map

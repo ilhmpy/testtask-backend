@@ -35,7 +35,7 @@ export class Methods {
                             rej(e);
                         });
                 } else {
-                    rej(Helpers.CreateError("Token is undefined", 400));
+                    rej(Helpers.CreateError("GetUserAccessError: Token is undefined", 400));
                 }
             } catch (e) {
                 rej(Helpers.CreateError(e, 500));
@@ -52,7 +52,7 @@ export class Methods {
                 DB.Find(collections.users, { nickname })
                     .then(async (result: ViewUsersModel[]) => {
                         if (result.length > 0) {
-                            rej(Helpers.CreateError("User already exist", 400));
+                            rej(Helpers.CreateError("CreateUserError: User already exist", 400));
                         } else {
                             const pwd = Helpers.CreatePassword(password);
                             const token = Helpers.CreateToken(nickname);
@@ -79,18 +79,19 @@ export class Methods {
 
     // проверяет авторизацию и возвращает пользователя если тот авторизован и не заблокирован
 
-    public GetAuth = (token: string) => {
+    public GetAuth = (token: any) => {
         return new Promise(async (res, rej) => {
             try {
                 DB.Find(collections.auth, { token })
                     .then(async (result: Auth[]) => {
+                        console.log("GETAUTH-TOKEN", token);
                         console.log("GETAUTH", result);
                         if (result && result.length > 0) {
                             DB.Find(collections.users, { nickname: result[0].nickname })
                                 .then(async (result: ViewUsersModel[]) => {
                                     if (result[0].blocked) {
                                         DB.Delete(collections.auth, { nickname: result[0].nickname });
-                                        rej(Helpers.CreateError("User is blocked", 400));
+                                        rej(Helpers.CreateError("GetAuthBlockedError: User is blocked", 400));
                                     };
                                 }).catch((err) => {
                                     rej(Helpers.CreateError(err, 404));
@@ -99,7 +100,7 @@ export class Methods {
                         if (result.length > 0) {
                             res([]);
                         };
-                        rej(Helpers.CreateError("User is not auth", 401));
+                        rej(Helpers.CreateError("GetAuthError: User is not auth", 401));
                     }).catch((err) => {
                         rej(err);
                     });
@@ -117,7 +118,7 @@ export class Methods {
                     DB.Find(collections.users, { nickname })
                         .then((rl: ViewUsersModel[]) => {
                             if (rl.length === 0) {
-                                rej(Helpers.CreateError("User is not defined", 400));
+                                rej(Helpers.CreateError("AuthUserError: User is not defined", 400));
                             };
                             console.log("RlBlocked", rl[0], rl[0].blocked);
                             console.log(password, rl);
@@ -129,7 +130,7 @@ export class Methods {
                                         }).catch((err) => {
                                             console.log(err);
                                         });
-                                    rej(Helpers.CreateError("User is blocked", 400));
+                                    rej(Helpers.CreateError("AuthUserBlockedError: User is blocked", 400));
                                 } else if ((Helpers.IsValidPassword(password, rl[0].password)) && !rl[0].blocked) {
                                     const token = Helpers.CreateToken(rl[0].nickname);
                                     DB.Find(collections.auth, { nickname })
@@ -154,7 +155,7 @@ export class Methods {
                             } catch(e) {
                                 console.log(e, rl[0].password);
                             };
-                            rej(Helpers.CreateError("Password is not valid", 400));
+                            rej(Helpers.CreateError("AuthUserError: Password is not valid", 400));
                         }).catch((err) => {
                             rej(err);
                         });
@@ -166,7 +167,7 @@ export class Methods {
 
     // возвращает пользователя по token'у перед этим действием нужно проверить уровень доступа отправлявшего с помощью GetUserLevelSuccess
 
-    public GetUserByToken = (token: string) => {
+    public GetUserByToken = (token: any) => {
         return new Promise(async (res, rej) => {
             try {
                 DB.Find(collections.users, { token })
@@ -176,7 +177,7 @@ export class Methods {
                             const { nickname, blocked, confirmed, creationDate, role, _id } = result[0];
                             res({ nickname, blocked, confirmed, creationDate, role, id: _id });
                         };
-                        rej(Helpers.CreateError("User is not defined", 400));
+                        rej(Helpers.CreateError("GetUserByTokenError: User is not defined", 400));
                     }).catch(err => res(err));
             } catch(e) {
                 rej(Helpers.CreateError(e, 500));

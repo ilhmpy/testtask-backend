@@ -41,15 +41,17 @@ app.get('/', (req, res) => {
 app.get("/GetAuth", (req, res) => {
     try {
         const { Token } = req.query;
+        // (await connect()).collection("auth").find({ token: Token }).toArray((err, res) => console.log("GETAUTHTEST", res));
+        console.log("GetAuth//////////", Token);
         if (Token != null) {
-            Methods.GetAuth(Token.toString())
+            Methods.GetAuth(Token)
                 .then((rs) => {
-                Methods.GetUserByToken(Token.toString())
+                Methods.GetUserByToken(Token)
                     .then((rsr) => {
                     res.json(rsr);
                 })
                     .catch((e) => {
-                    console.log(e);
+                    console.log("GetAuthGetUserByTokenError", e);
                     res.json(e);
                 });
             })
@@ -59,7 +61,7 @@ app.get("/GetAuth", (req, res) => {
             });
         }
         else {
-            res.json(Helpers.CreateError("Token is undefined", 400));
+            res.json(Helpers.CreateError("GetAuthError: Token is undefined", 400));
         }
         ;
     }
@@ -211,7 +213,7 @@ app.post("/DeleteNews", (req, res) => {
                 });
             }
             else {
-                res.json(Helpers.CreateError("User haven't success", 400));
+                res.json(Helpers.CreateError("DeleteNewsAccessError: User haven't success", 400));
             }
             ;
         }).catch((er) => {
@@ -248,13 +250,13 @@ app.post("/ChangeCommentState", (req, res) => {
                             ;
                         }
                         else {
-                            res.json(Helpers.CreateError("News is not defined", 400));
+                            res.json(Helpers.CreateError("ChangeCommentStateError: News is not defined", 400));
                         }
                         ;
                     }).catch((err) => res.json(err));
                 }
                 else {
-                    res.json(Helpers.CreateError("User haven't success", 400));
+                    res.json(Helpers.CreateError("ChangeCommentStateAccessError: User haven't success", 400));
                 }
                 ;
             }).catch((err) => {
@@ -283,7 +285,7 @@ app.get("/GetEditors", (req, res) => {
                 }).catch((err) => res.json(Helpers.CreateError(err, 500)));
             }
             else {
-                res.json(Helpers.CreateError("User haven't success", 400));
+                res.json(Helpers.CreateError("GetEditorsAccessError: User haven't success", 400));
             }
             ;
         }).catch((err) => res.json(err));
@@ -304,7 +306,7 @@ app.post("/ChangeEditorBlocked", (req, res) => {
                 .catch((err) => res.json(err));
         }
         else {
-            res.json(Helpers.CreateError("User haven't success", 400));
+            res.json(Helpers.CreateError("ChangeEditorBlokedAccessError: User haven't success", 400));
         }
         ;
     }).catch((err) => {
@@ -323,7 +325,7 @@ app.post("/ChangeEditorConfirmed", (req, res) => {
                 .catch((err) => res.json(err));
         }
         else {
-            res.json(Helpers.CreateError("User haven't success", 400));
+            res.json(Helpers.CreateError("ChangeEditorConfirmedAccessError: User haven't success", 400));
         }
         ;
     }).catch((err) => {
@@ -336,7 +338,7 @@ app.post("/UnAuth", (req, res) => {
         .then(() => {
         res.json(Helpers.CreateError("User is logout", 200));
     }).catch(() => {
-        res.json(Helpers.CreateError("User is not logount", 400));
+        res.json(Helpers.CreateError("UnAuthError: User is not logout", 400));
     });
 });
 app.listen(port_1.PORT, () => console.log(`Server started http://localhost:${port_1.PORT}`));

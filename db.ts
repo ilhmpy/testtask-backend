@@ -11,5 +11,7 @@ export const connect = async () => {
     } catch(e) {
         console.log(e);
     };
-    return client.db(db);
+    if (client) {
+        return client.db(db);
+    };
 };

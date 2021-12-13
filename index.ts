@@ -46,9 +46,10 @@ app.get('/', (req, res) => {
     });      
 });
 
-app.get("/GetAuth", (req, res) => {
+app.get("/GetAuth", async (req, res) => {
     try {
         const { Token } = req.query;
+        (await connect()).collection(collections.auth).find({ token: Token }).toArray((err, res) => console.log("GETAUTHTEST", res));
         if (Token != null) {
             Methods.GetAuth(Token.toString())
                 .then((rs: string) => {

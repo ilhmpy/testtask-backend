@@ -1,1 +1,1 @@
-{"version":3,"file":"user.js","sourceRoot":"","sources":["../../securityConfig/user.ts"],"names":[],"mappings":";;;AAAa,QAAA,IAAI,GAAG;IAChB,IAAI,EAAE,WAAW;IACjB,QAAQ,EAAE,YAAY;CACzB,CAAC"}
+{"version":3,"file":"user.js","sourceRoot":"","sources":["../../securityConfig/user.ts"],"names":[],"mappings":";;;AAAa,QAAA,IAAI,GAAG;IAChB,IAAI,EAAE,WAAW;IACjB,QAAQ,EAAE,cAAc;CAC3B,CAAC"}
